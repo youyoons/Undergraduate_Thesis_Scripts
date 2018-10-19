@@ -2,6 +2,7 @@
 This is a collection of the scripts that I have used (that are not in other repositories) for my undergraduate EngSci thesis.
 
 all_acnum_serdesc.py
+
 Purpose: to get all the accession numbers in a batch using get_accession number(); to get some series descriptions in a btach using get_series_description()
 
 Please run this script as:
