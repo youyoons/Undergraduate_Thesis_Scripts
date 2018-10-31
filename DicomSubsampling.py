@@ -11,8 +11,12 @@ def create_3d_dicom(series_path):
     print(dicom_files)
     
     slice_num = 0
-    dicom_3d = np.zeros((512,512,len(dicom_files)))
-    
+
+    ds = pydicom.dcmread(series_path + dicom_files[0])
+    image_2d = ds.pixel_array.astype(float)
+    size_2d = np.shape(image_2d)
+    dicom_3d = np.zeros((size_2d[0],size_2d[1],len(dicom_files)))
+
     for file_name in dicom_files:
         ds = pydicom.dcmread(series_path + file_name)
     
@@ -28,8 +32,6 @@ def create_3d_dicom(series_path):
     
         slice_num += 1
     
-    #print(image_2d_scaled.shape)
-    #print(image_2d_scaled[100][100])
     print(dicom_3d.shape)
     print(dicom_3d[100,100,30])
     
@@ -61,8 +63,8 @@ if __name__ == '__main__':
     os.getcwd()
     
     #Point to a processed series directory
-    series_path = "/home/youy/Documents/Spine/RawData/1.2.840.113619.2.25.4.1260075.1281918795.857/1.2.840.113619.2.25.4.1260075.1281918796.268/"
-    
+    #series_path = "/home/youy/Documents/Spine/RawData/1.2.840.113619.2.25.4.1260075.1281918795.857/1.2.840.113619.2.25.4.1260075.1281918796.268/"
+    series_path = "/home/youy/Documents/Spine/ProcessedData_y/1.2.840.113696.344085.500.1501618.20171027180710/1.2.840.113619.2.416.236476595677114544693997483705137849016/"
     dicom_3d = create_3d_dicom(series_path)
     
     #Testing with 3D Images
@@ -74,8 +76,8 @@ if __name__ == '__main__':
     
     print(dicom_3d)
     print(dicom_3d_downsized)
-    
-    '''
+
+
     #Testing to print values
     plt.clf() #Clear the Current Figure
     plt.gray() #Set colormap to gray
@@ -83,20 +85,19 @@ if __name__ == '__main__':
     
     fig = plt.figure()
     fig.add_subplot(2,2,1)
-    plt.title('Reference image')
-    plt.imshow(reference_image[:,20,:])
+    plt.title('Full Size - Beginning')
+    plt.imshow(dicom_3d[:,:,0])
     
     fig.add_subplot(2,2,2)
-    plt.title('Query image')
-    plt.imshow(query_image[:,20,:])
+    plt.title('Full Size - Middle')
+    plt.imshow(dicom_3d[:,:,50])
     
     fig.add_subplot(2,2,3)
-    plt.title('Accumulator')
-    plt.imshow(accumulator[:,20,:])
+    plt.title('Downsized - Beginning')
+    plt.imshow(dicom_3d_downsized[:,:,0])
     
     fig.add_subplot(2,2,4)
-    plt.title('Detection')
-    plt.imshow(query_image[:,20,:])
+    plt.title('Downsized - Middle')
+    plt.imshow(dicom_3d_downsized[:,:,25])
     
     plt.show()
-    '''
