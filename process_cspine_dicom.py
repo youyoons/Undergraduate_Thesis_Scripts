@@ -14,28 +14,29 @@ import pandas
 import traceback
 
 def save_log(path,entries,exclusions):
-
+    print(exclusions)
     df = pandas.DataFrame(entries, columns=["Study","Series","File"]+exclusions)
     df.to_csv(path, index=False)
 
 
 def inspect_scan(scan_path):
-    
-    scan = pydicom.read_file(scan_path) 
+
+    scan = pydicom.read_file(scan_path)
     print(scan.dir())
     print(scan)
-    
+
 def process_study(scans,file_names,base_dir,patient,exclusions,log_path):
 
     all_series = {} #stores all the series (studies done on a single patient)
-    
+
     #Study is the patient that is being studied
-    study = scans[0].StudyInstanceUID    
+    study = scans[0].StudyInstanceUID
+    accessnum = scans[0].AccessionNumber
 
     print("Processing study: {}".format(study))
 
     assert len(scans)==len(file_names), "scans list and file_names list have diff lengths"
- 
+
     #identify all series (different patient studies) in the study (patient)
     for index,scan in enumerate(scans): #enumerate starts from 0
         series = scan.SeriesInstanceUID
@@ -48,12 +49,17 @@ def process_study(scans,file_names,base_dir,patient,exclusions,log_path):
         else:
             all_series[series].append([instance,file_names[index],series_desc])
 
-    #create directories for different series
-    study_path_raw = os.path.join("/home/youy/Documents/Spine/RawData_y",study)
- 
-    study_path_proc = os.path.join("/home/youy/Documents/Spine/ProcessedData_y",study)
+    #create directories for different series0=bcdfoprst
+    study_path_raw = os.path.join("/home/youy/Documents/Spine/RawData_y",accessnum)
+    study_path_proc = os.path.join("/home/youy/Documents/Spine/ProcessedData_y",accessnum)
+
+    #Remove All Files/Directories Existing within RawData and ProcessedData
+    #os.rmdir("/home/youy/Documents/Spine/RawData_y")
+    #os.rmdir("/home/youy/Documents/Spine/ProcessedData_y")
 
     [os.mkdir(path) for path in [study_path_raw,study_path_proc] if not os.path.exists(path)]
+
+
 
     # Stores the series description that fits the CSpine scans we want
     valid_series_desc = ["C SPINE BONE SAG 1.2", "C-SPINE BONE SAG 1.2", "C-SPINE SAG", "C-SPINE SPINE BONE SAG",
@@ -109,51 +115,60 @@ def process_study(scans,file_names,base_dir,patient,exclusions,log_path):
 
             for s in series_scans:
                 s.SliceThickness = slice_thickness
- 
+
             instance_nums = [scan.InstanceNumber for scan in series_scans]
-        
+
             for index,scan in enumerate(series_scans):
                 file_name = "scan_%s_%s" % (str(instance_nums[index]).rjust(4, '0'),".dcm")
                 log_ids = [study,series,file_name]
-            
+
                 #saving path of anonymized one to proc directory
                 save_path = os.path.join(study_path_proc,series,file_name)
-            
+
                 all_attributes = scan.dir()
                 log_attr = []
-            
+                #print(all_attributes)
                 for attr in all_attributes:
                     if attr in exclusions:
                         tag = scan.data_element(attr).tag
                         value = scan[tag].value
                         log_attr.append(value)
                         del scan[tag]
-                    
+
                 print("Saving processed study to {}".format(save_path))
-            
+
                 #saving to processed location
                 scan.save_as(save_path)
-            
+
                 #adding to log_entries, which will be used for the linking log
                 log_entries.append(log_ids+log_attr)
-             
+
             print("Series {} complete".format(series))
 
-    
+
+
+    directories = os.listdir("/home/youy/Documents/Spine/RawData_y/")
+    for i in directories:
+        if len(os.listdir(os.path.join("/home/youy/Documents/Spine/RawData_y/",i))) == 0:
+            os.rmdir(os.path.join("/home/youy/Documents/Spine/RawData_y/",i))
+            os.rmdir(os.path.join("/home/youy/Documents/Spine/ProcessedData_y/", i))
+
+
     return log_entries
- 
+
 
 def process_scans(data_dir="/media/ubuntu/cryptscratch/scratch/youy/Data/Spine/"):
-    dicom_exclusions = ['AccessionNumber','AdditionalPatientHistory','NameOfPhysiciansReadingStudy','OtherPatientIDs','OtherPatientIDsSequence','PatientBirthDate','PatientID','PatientName']    
-    
-    raw_data_dir = "/home/youy/Documents/Spine/batch1/"
+    #Must be in alphabetical order
+    dicom_exclusions = ['AccessionNumber','AdditionalPatientHistory','InstitutionName','NameOfPhysiciansReadingStudy','OtherPatientIDs','OtherPatientIDsSequence','PatientBirthDate','PatientID','PatientName','ReferringPhysicianName']
+
+    raw_data_dir = "/home/youy/Documents/Spine/batch_test/"
     log_path = "/home/youy/Documents/Spine/linking_log.csv"
 
     patients = os.listdir(raw_data_dir)
     print(patients)
-    
+
     log_entries = []
-    
+
     for patient in patients:
         try:
             patient_path = os.path.join(raw_data_dir, patient)
@@ -161,22 +176,24 @@ def process_scans(data_dir="/media/ubuntu/cryptscratch/scratch/youy/Data/Spine/"
             dicom_filenames = os.listdir(patient_path)
             dicom_files = [file_name for file_name in dicom_filenames if file_name[-4:]==".dcm"]
             #print(dicom_files)
-            
-            slices = [pydicom.read_file(os.path.join(patient_path,s)) for s in dicom_files] 
+
+            slices = [pydicom.read_file(os.path.join(patient_path,s)) for s in dicom_files]
             file_names = [os.path.join(patient_path,s) for s in dicom_files]
             #print(slices)
-            
-            log_line = process_study(slices,file_names,data_dir,patient,dicom_exclusions,log_path)   
-            
-            log_entries.extend(log_line)    
+
+            log_line = process_study(slices,file_names,data_dir,patient,dicom_exclusions,log_path)
+            #print(log_line)
+            log_entries.extend(log_line)
             print('-------------------------------------------')
-       
+
         except Exception as e:
             print("Error with {} : {}".format(patient,e))
             traceback.print_exc()
-            
+
+    #print(dicom_exclusions)
+    #print(log_entries[0:2])
     save_log(log_path,log_entries,dicom_exclusions)
 
 if __name__=="__main__":
     process_scans()
-   
+
