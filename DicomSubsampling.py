@@ -3,6 +3,30 @@ import os
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import numpy as np
+import png
+import cPickle
+
+def create_dicom_png(series_path):
+    dicom_filenames = sorted(os.listdir(series_path))
+    dicom_files = [file_name for file_name in dicom_filenames if file_name[-4:] == ".dcm"]
+
+    destination = '/home/youy/Documents/DICOM_PNG/'
+
+    for file_name in dicom_files:
+        ds = pydicom.dcmread(series_path + file_name)
+        shape = ds.pixel_array.shape
+
+        image_2d = ds.pixel_array.astype(float)
+        image_2d_scaled = (np.maximum(image_2d, 0) / image_2d.max()) * 255.0
+
+        image_2d_scaled = np.uint8(image_2d_scaled)
+
+        with open(destination + file_name[:-4] + ".png",'wb') as png_file:
+            w = png.Writer(shape[1],shape[0], greyscale=True)
+            w.write(png_file, image_2d_scaled)
+
+    return None
+
 
 #Function: takes in the path of a series and returns a 3D Numpy Array
 def create_3d_dicom(series_path):
@@ -63,10 +87,14 @@ if __name__ == '__main__':
     os.getcwd()
     
     #Point to a processed series directory
-    #series_path = "/home/youy/Documents/Spine/RawData/1.2.840.113619.2.25.4.1260075.1281918795.857/1.2.840.113619.2.25.4.1260075.1281918796.268/"
-    series_path = "/home/youy/Documents/Spine/ProcessedData_y/1.2.840.113696.344085.500.1501618.20171027180710/1.2.840.113619.2.416.236476595677114544693997483705137849016/"
+    series_path = "/home/youy/Documents/Spine/ProcessedData_y/6585553/1.2.840.113619.2.25.4.235810714.7183.1306015929.539/"
     dicom_3d = create_3d_dicom(series_path)
-    
+
+    #create_dicom_png(series_path)
+
+    cPickle.dump(dicom_3d, open("dicom_3d_sample.pkl", "wb"))
+    #dicom_3d = cPickle.load(open("dicom_3d_sample.pkl", "rb"))
+
     #Testing with 3D Images
     #np.random.seed(29)
     #dicom_3d = np.random.randint(0, 256, size=(8,8,8))
