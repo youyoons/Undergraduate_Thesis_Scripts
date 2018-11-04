@@ -61,25 +61,34 @@ def create_3d_dicom(series_path):
     
     return dicom_3d
 
-#Function: read in a 3D Numpy array and downsize it by 2x (side lengths)
-def downsize_2x(dicom_3d):
+'''
+Function: read in a 3D Numpy array and downsize it by 2x (side lengths)
+Inputs: dicom_3d is a 3d numpy array
+        narrow_3rd is True if we want to downsize the narrow dimension
+'''
+def downsize_2x(dicom_3d,narrow_3rd=True):
     #Get dimensions of original dicom image
     dicom_3d_dim = np.shape(dicom_3d)
     
-    #Set downsized dicom image to be half for each side (1/8 the volume)
-    dicom_3d_downsized = np.zeros((dicom_3d_dim[0]//2,dicom_3d_dim[1]//2,dicom_3d_dim[2]//2))
-    
+    if narrow_3rd:
+        #Set downsized dicom image to be half for each side (1/8 the volume)
+        dicom_3d_downsized = np.zeros((dicom_3d_dim[0]//2,dicom_3d_dim[1]//2,dicom_3d_dim[2]//2))
+    else:
+        #Set downsized dicom image to be half for the non-narrow sides (1/4 the volume)
+        dicom_3d_downsized = np.zeros((dicom_3d_dim[0]//2,dicom_3d_dim[1]//2,dicom_3d_dim[2]))
+        
     for i in range(dicom_3d_downsized.shape[0]):
         for j in range(dicom_3d_downsized.shape[1]):
             for k in range(dicom_3d_downsized.shape[2]):
-                dicom_3d_downsized[i,j,k] = (dicom_3d[2*i,2*j,2*k] + dicom_3d[2*i+1,2*j,2*k] + dicom_3d[2*i,2*j+1,2*k] + dicom_3d[2*i+1,2*j+1,2*k] + dicom_3d[2*i,2*j,2*k+1] + dicom_3d[2*i+1,2*j,2*k+1] + dicom_3d[2*i,2*j+1,2*k+1] + dicom_3d[2*i+1,2*j+1,2*k+1])/8
-    
+                if narrow_3rd:
+                    dicom_3d_downsized[i,j,k] = (dicom_3d[2*i,2*j,2*k] + dicom_3d[2*i+1,2*j,2*k] + dicom_3d[2*i,2*j+1,2*k] + dicom_3d[2*i+1,2*j+1,2*k] + dicom_3d[2*i,2*j,2*k+1] + dicom_3d[2*i+1,2*j,2*k+1] + dicom_3d[2*i,2*j+1,2*k+1] + dicom _3d[2*i+1,2*j+1,2*k+1])/8
+                    else:
+                     dicom_3d_downsized[i,j,k] = (dicom_3d[2*i,2*j,k] + dicom_3d[2*i+1,2*j,k] + dicom_3d[2*i,2*j+1,k] + dicom_3d[2*i+1,2*j+1,k])/4
     
     #Rounding the Downsized 
     dicom_3d_downsized = np.rint(dicom_3d_downsized)
     
     return dicom_3d_downsized
-
 
 
 
@@ -99,17 +108,12 @@ if __name__ == '__main__':
     #np.random.seed(29)
     #dicom_3d = np.random.randint(0, 256, size=(8,8,8))
 
+    dicom_3d = pickle.load(open("dicom_3d_sample.pkl","rb"),encoding = 'latin1')
+    dicom_3d_downsized = downsize_2x(dicom_3d,False)
     
-    dicom_3d_downsized = downsize_2x(dicom_3d)
-    
-    print(dicom_3d)
-    print(dicom_3d_downsized)
-
+    dicom_3d_4x_downsized = downsize_2x(dicom_3d_downsized,True)
 
     #Testing to print values
-    plt.clf() #Clear the Current Figure
-    plt.gray() #Set colormap to gray
-    
     
     fig = plt.figure()
     fig.add_subplot(2,2,1)
