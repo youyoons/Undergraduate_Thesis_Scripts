@@ -4,7 +4,11 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import numpy as np
 import png
-import cPickle
+
+try:
+    import cPickle
+except ImportError:
+    import pickle as cPickle
 
 def create_dicom_png(series_path):
     dicom_filenames = sorted(os.listdir(series_path))
@@ -81,55 +85,90 @@ def downsize_2x(dicom_3d,narrow_3rd=True):
         for j in range(dicom_3d_downsized.shape[1]):
             for k in range(dicom_3d_downsized.shape[2]):
                 if narrow_3rd:
-                    dicom_3d_downsized[i,j,k] = (dicom_3d[2*i,2*j,2*k] + dicom_3d[2*i+1,2*j,2*k] + dicom_3d[2*i,2*j+1,2*k] + dicom_3d[2*i+1,2*j+1,2*k] + dicom_3d[2*i,2*j,2*k+1] + dicom_3d[2*i+1,2*j,2*k+1] + dicom_3d[2*i,2*j+1,2*k+1] + dicom _3d[2*i+1,2*j+1,2*k+1])/8
-                    else:
-                     dicom_3d_downsized[i,j,k] = (dicom_3d[2*i,2*j,k] + dicom_3d[2*i+1,2*j,k] + dicom_3d[2*i,2*j+1,k] + dicom_3d[2*i+1,2*j+1,k])/4
+                    dicom_3d_downsized[i,j,k] = (dicom_3d[2*i,2*j,2*k] + dicom_3d[2*i+1,2*j,2*k] + dicom_3d[2*i,2*j+1,2*k] + dicom_3d[2*i+1,2*j+1,2*k] + dicom_3d[2*i,2*j,2*k+1] + dicom_3d[2*i+1,2*j,2*k+1] + dicom_3d[2*i,2*j+1,2*k+1] + dicom_3d[2*i+1,2*j+1,2*k+1])/8
+                else:
+                    dicom_3d_downsized[i,j,k] = (dicom_3d[2*i,2*j,k] + dicom_3d[2*i+1,2*j,k] + dicom_3d[2*i,2*j+1,k] + dicom_3d[2*i+1,2*j+1,k])/4
     
     #Rounding the Downsized 
     dicom_3d_downsized = np.rint(dicom_3d_downsized)
     
     return dicom_3d_downsized
 
+'''
+Function: get a dicom image and select a volume of interest
+'''
+def volumeOfInterest(dicom):
+    #c12 = np.zeros((30,30,50))
+    sample = dicom[8:44,40:65,19:32]
+
+    return sample
+
 
 
 if __name__ == '__main__':
-    os.getcwd()
-    
     #Point to a processed series directory
-    series_path = "/home/youy/Documents/Spine/ProcessedData_y/6585553/1.2.840.113619.2.25.4.235810714.7183.1306015929.539/"
-    dicom_3d = create_3d_dicom(series_path)
+    #series_path = "/home/youy/Documents/Spine/ProcessedData_y/6585553/1.2.840.113619.2.25.4.235810714.7183.1306015929.539/"
+    
+    #dicom_3d = create_3d_dicom(series_path)
 
-    #create_dicom_png(series_path)
+    #cPickle.dump(dicom_3d, open("dicom_3d_sample.pkl", "wb"))
+    #
 
-    cPickle.dump(dicom_3d, open("dicom_3d_sample.pkl", "wb"))
-    #dicom_3d = cPickle.load(open("dicom_3d_sample.pkl", "rb"))
-
-    #Testing with 3D Images
-    #np.random.seed(29)
-    #dicom_3d = np.random.randint(0, 256, size=(8,8,8))
-
-    dicom_3d = pickle.load(open("dicom_3d_sample.pkl","rb"),encoding = 'latin1')
+    try:
+        dicom_3d = cPickle.load(open("dicom_3d_9183761.pkl", "rb"))
+    except:
+        dicom_3d = cPickle.load(open("dicom_3d_9183761.pkl","rb"),encoding = 'latin1')
+        
+        
     dicom_3d_downsized = downsize_2x(dicom_3d,False)
     
     dicom_3d_4x_downsized = downsize_2x(dicom_3d_downsized,True)
 
-    #Testing to print values
+    #Get volume of interest
+    sample = volumeOfInterest(dicom_3d_4x_downsized)
+ 
+    cPickle.dump(sample, open("dicom_3d_9183761_sample.pkl", "wb"))
+    cPickle.dump(dicom_3d_4x_downsized, open("dicom_3d_9183761_dwn4x.pkl","wb"))
     
     fig = plt.figure()
-    fig.add_subplot(2,2,1)
+    plt.gray()
+
+    for i in range(13):    
+        fig.add_subplot(5,3,i+1)
+        plt.imshow(sample[:,:,i])
+    
+    
+    plt.show() 
+ 
+'''
+    #Testing to print values
+    fig = plt.figure()
+    plt.gray()
+    fig.add_subplot(3,2,1)
     plt.title('Full Size - Beginning')
     plt.imshow(dicom_3d[:,:,0])
     
-    fig.add_subplot(2,2,2)
+    fig.add_subplot(3,2,2)
     plt.title('Full Size - Middle')
     plt.imshow(dicom_3d[:,:,50])
     
-    fig.add_subplot(2,2,3)
-    plt.title('Downsized - Beginning')
+    fig.add_subplot(3,2,3)
+    plt.title('Downsized 2x - Beginning')
     plt.imshow(dicom_3d_downsized[:,:,0])
     
-    fig.add_subplot(2,2,4)
-    plt.title('Downsized - Middle')
-    plt.imshow(dicom_3d_downsized[:,:,25])
+    fig.add_subplot(3,2,4)
+    plt.title('Downsized 2x - Middle')
+    plt.imshow(dicom_3d_downsized[:,:,50])
+    
+    fig.add_subplot(3,2,5)
+    plt.title('Downsized 4x - Beginning')
+    plt.imshow(dicom_3d_4x_downsized[:,:,0])
+    
+    fig.add_subplot(3,2,6)
+    plt.title('Downsized 4x - Middle')
+    plt.imshow(dicom_3d_4x_downsized[:,:,25])
     
     plt.show()
+'''
+
+
