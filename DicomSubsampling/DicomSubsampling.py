@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import numpy as np
 import png
+from glob import glob
 
 try:
     import cPickle
@@ -99,46 +100,123 @@ Function: get a dicom image and select a volume of interest
 '''
 def volumeOfInterest(dicom):
     #c12 = np.zeros((30,30,50))
-    sample = dicom[8:44,40:65,19:32]
+    
+    #9183761
+    #sample = dicom[8:44,40:65,19:32]
+    
+    #9128577
+    sample = dicom[12:50,36:64,18:26]
+    
+    sample_dim = np.shape(sample)
+    
+    
+    #Frontal
+    fig = plt.figure()
+    plt.gray()
 
+    for i in range(5):    
+        fig.add_subplot(2,5,i+1)
+        plt.imshow(sample[:,:,sample_dim[2]//6*i])
+    
+    #Side 
+    fig2 = plt.figure()
+    plt.gray()
+
+    for i in range(5):    
+        fig2.add_subplot(2,5,i+1)
+        plt.imshow(sample[:,sample_dim[1]//6*i,:])
+    
+    plt.show()
+    
     return sample
 
+def generate_pkl(series_path):
+    dicom_3d = create_3d_dicom(series_path)
+    cPickle.dump(dicom_3d, open("dicom_3d_sample.pkl", "wb"))
+    
+    return None
 
 
 if __name__ == '__main__':
-    #Point to a processed series directory
+    os.chdir("C:\\Users\\yoons\\Documents\\4th Year Semester 1\\ESC499 - Thesis\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
+
+    #base_series_path = "/home/youy/Documents/Spine/ProcessedData_y/"
+    
+    #series_paths = glob(base_series_path + "/*/*/")
+    
     #series_path = "/home/youy/Documents/Spine/ProcessedData_y/6585553/1.2.840.113619.2.25.4.235810714.7183.1306015929.539/"
     
-    #dicom_3d = create_3d_dicom(series_path)
+    #Generate pkl files for all series
+    #for series_path in series_paths:
+    #    generate_pkl(series_path)
+    
+    
+    
 
-    #cPickle.dump(dicom_3d, open("dicom_3d_sample.pkl", "wb"))
-    #
+    ac_num = "9128577"
+    print("ACCESSION NUMBER: ", ac_num)
 
     try:
-        dicom_3d = cPickle.load(open("dicom_3d_9183761.pkl", "rb"))
+        dicom_3d_pre1 = cPickle.load(open("dicom_3d_" + ac_num + ".pkl", "rb"))
     except:
-        dicom_3d = cPickle.load(open("dicom_3d_9183761.pkl","rb"),encoding = 'latin1')
-        
-        
-    dicom_3d_downsized = downsize_2x(dicom_3d,False)
+        dicom_3d_pre1 = cPickle.load(open("dicom_3d_" + ac_num + ".pkl","rb"),encoding = 'latin1')
     
-    dicom_3d_4x_downsized = downsize_2x(dicom_3d_downsized,True)
+    dicom_3d_pre1_dim = np.shape(dicom_3d_pre1)
+    print("Dimensions of Raw DICOM: ", dicom_3d_pre1_dim)
+
+    #Need to make sure the z-axis length is divisible by 4
+    dicom_3d_pre = dicom_3d_pre1[:,:,1:dicom_3d_pre1_dim[2]-1]
+    dicom_3d_pre_dim = np.shape(dicom_3d_pre)
+    
+
+    dicom_3d = dicom_3d_pre[:,:,0:((dicom_3d_pre_dim[2])//4)*4]
+    
+    dicom_3d_dim = np.shape(dicom_3d)
+    print("Dimensions of Processed DICOM: ", dicom_3d_dim)
+    
+    #True to downsize the z axis
+    dicom_3d_downsized = downsize_2x(dicom_3d,True)
+    
+    #Look at z axis length to see whether to narrow z-axis by 4x
+    if dicom_3d_dim[2] > 150:
+        dicom_3d_4x_downsized = downsize_2x(dicom_3d_downsized,True)
+    else:
+        dicom_3d_4x_downsized = downsize_2x(dicom_3d_downsized,False)
+
+
+    dicom_3d_4x_dim = np.shape(dicom_3d_4x_downsized)
+    print("Dimension of Downsized DICOM: ", dicom_3d_4x_dim)
 
     #Get volume of interest
     sample = volumeOfInterest(dicom_3d_4x_downsized)
  
-    cPickle.dump(sample, open("dicom_3d_9183761_sample.pkl", "wb"))
-    cPickle.dump(dicom_3d_4x_downsized, open("dicom_3d_9183761_dwn4x.pkl","wb"))
+    cPickle.dump(sample, open("dicom_3d_" + ac_num + "_sample.pkl", "wb"))
     
+    #Save the final downsized image
+    cPickle.dump(dicom_3d_4x_downsized, open("dicom_3d_" + ac_num + "_dwn4x.pkl","wb"))
+
+
+'''
+    #Frontal
     fig = plt.figure()
     plt.gray()
 
-    for i in range(13):    
-        fig.add_subplot(5,3,i+1)
-        plt.imshow(sample[:,:,i])
+    for i in range(10):    
+        fig.add_subplot(2,5,i+1)
+        plt.imshow(dicom_3d[:,:,dicom_3d_dim[2]//11 * i])
+    
+    #Side 
+    fig2 = plt.figure()
+    plt.gray()
+
+    for i in range(10):    
+        fig2.add_subplot(2,5,i+1)
+        plt.imshow(dicom_3d[:,dicom_3d_dim[1]//11 * i,:])
     
     
     plt.show() 
+'''
+ 
  
 '''
     #Testing to print values
