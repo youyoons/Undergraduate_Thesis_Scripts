@@ -196,7 +196,7 @@ def process_scans(raw_data_dir,path_raw,path_proc,log_path):
 
 if __name__=="__main__":
 
-    raw_data_dir = "/home/youy/Documents/Spine/batch1/"   
+    raw_data_dir = "/home/youy/Documents/Spine/batch_test2/"   
     path_raw = "/home/youy/Documents/Spine/RawData_y"
     path_proc = "/home/youy/Documents/Spine/ProcessedData_y"
     log_path = "/home/youy/Documents/Spine/linking_log.csv"
