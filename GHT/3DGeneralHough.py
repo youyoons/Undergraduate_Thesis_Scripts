@@ -132,10 +132,6 @@ def canny_edges_3d(grayImage):
     
     return edges
 
-def LoG_3d(grayImage):
-    #https://stackoverflow.com/questions/22050199/python-implementation-of-the-laplacian-of-gaussian-edge-detection
-    return 0
-
 def accumulate_gradients(r_table, grayImage):
     '''
     Perform a General Hough Transform with the given image and R-table
@@ -148,21 +144,16 @@ def accumulate_gradients(r_table, grayImage):
     phi, psi = gradient_orientation(edges)
     
     accumulator = np.zeros(grayImage.shape)
-    #print("Accumulator shape: ", accumulator.shape)
-    #print(accumulator)
-    #print(edges)
 
     #print("Start Accumulation")
     for (i,j,k),value in np.ndenumerate(edges):
-        #print(i,j,k,value)
+
         if value:
-            #print(r_table.keys())
             #Changed to int(gradient) which makes more sense
             for r in r_table[(int(phi[i,j,k]), int(psi[i,j,k]))]:
                 accum_i, accum_j, accum_k = i+r[0], j+r[1], k+r[2]
                 if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
                     accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1
-        #print(i,j)
                     
     return accumulator
 
@@ -175,6 +166,7 @@ def general_hough_closure(reference_image):
     '''
     
     referencePoint = (reference_image.shape[0]/2, reference_image.shape[1]/2, reference_image.shape[2]/2)
+    
     print("Referfence Point: ", referencePoint)
     
     r_table = build_r_table(reference_image, referencePoint)
@@ -182,9 +174,6 @@ def general_hough_closure(reference_image):
     def f(query_image):
         return accumulate_gradients(r_table, query_image)
         
-        
-    #print("Finish General Hough Closure Function")
-
     return f
 
 def n_max(a, n):
@@ -274,9 +263,9 @@ def test():
     print("Size of Reference Detection Image: ", np.shape(c12_vertebrae))
     
     detect_s = general_hough_closure(c12_vertebrae)
-    #test_general_hough(detect_s, c12_vertebrae, dicom_downsized[:,30:90,:])
     
     test_general_hough(detect_s, c12_vertebrae, dicom_downsized)
+    
 '''
     #Testing with 3D Images
 
