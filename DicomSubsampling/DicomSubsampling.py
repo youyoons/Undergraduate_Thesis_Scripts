@@ -62,7 +62,7 @@ def create_3d_dicom(series_path):
         slice_num += 1
     
     print(dicom_3d.shape)
-    print(dicom_3d[100,100,30])
+    #print(dicom_3d[100,100,30])
     
     return dicom_3d
 
@@ -130,47 +130,14 @@ def volumeOfInterest(dicom):
     
     return sample
 
-def generate_pkl(series_path):
-    dicom_3d = create_3d_dicom(series_path)
-    cPickle.dump(dicom_3d, open("dicom_3d_sample.pkl", "wb"))
+def generate_pkl(series_path, ac_num, save_orig=False):
+    raw_dicom_3d = create_3d_dicom(series_path)
     
-    return None
-
-
-if __name__ == '__main__':
-    os.chdir("C:\\Users\\yoons\\Documents\\4th Year Semester 1\\ESC499 - Thesis\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
-
-    #base_series_path = "/home/youy/Documents/Spine/ProcessedData_y/"
-    
-    #series_paths = glob(base_series_path + "/*/*/")
-    
-    #series_path = "/home/youy/Documents/Spine/ProcessedData_y/6585553/1.2.840.113619.2.25.4.235810714.7183.1306015929.539/"
-    
-    #Generate pkl files for all series
-    #for series_path in series_paths:
-    #    generate_pkl(series_path)
+    if save_orig:
+        cPickle.dump(raw_dicom_3d, open("dicom_3d_sample.pkl", "wb"))
     
     
-    
-
-    ac_num = "9128577"
-    print("ACCESSION NUMBER: ", ac_num)
-
-    try:
-        dicom_3d_pre1 = cPickle.load(open("dicom_3d_" + ac_num + ".pkl", "rb"))
-    except:
-        dicom_3d_pre1 = cPickle.load(open("dicom_3d_" + ac_num + ".pkl","rb"),encoding = 'latin1')
-    
-    dicom_3d_pre1_dim = np.shape(dicom_3d_pre1)
-    print("Dimensions of Raw DICOM: ", dicom_3d_pre1_dim)
-
-    #Need to make sure the z-axis length is divisible by 4
-    dicom_3d_pre = dicom_3d_pre1[:,:,1:dicom_3d_pre1_dim[2]-1]
-    dicom_3d_pre_dim = np.shape(dicom_3d_pre)
-    
-
-    dicom_3d = dicom_3d_pre[:,:,0:((dicom_3d_pre_dim[2])//4)*4]
-    
+    dicom_3d = raw_dicom_3d[:,:,0:((dicom_3d_pre_dim[2])//4)*4]
     dicom_3d_dim = np.shape(dicom_3d)
     print("Dimensions of Processed DICOM: ", dicom_3d_dim)
     
@@ -182,40 +149,120 @@ if __name__ == '__main__':
         dicom_3d_4x_downsized = downsize_2x(dicom_3d_downsized,True)
     else:
         dicom_3d_4x_downsized = downsize_2x(dicom_3d_downsized,False)
-
-
+    
     dicom_3d_4x_dim = np.shape(dicom_3d_4x_downsized)
     print("Dimension of Downsized DICOM: ", dicom_3d_4x_dim)
-
-    #Get volume of interest
-    sample = volumeOfInterest(dicom_3d_4x_downsized)
- 
-    cPickle.dump(sample, open("dicom_3d_" + ac_num + "_sample.pkl", "wb"))
     
-    #Save the final downsized image
+    #Save the final downsized image as pkl file
     cPickle.dump(dicom_3d_4x_downsized, open("dicom_3d_" + ac_num + "_dwn4x.pkl","wb"))
+    
+    return None
 
 
-'''
+if __name__ == '__main__':
+    #os.chdir("C:\\Users\\yoons\\Documents\\4th Year Semester 1\\ESC499 - Thesis\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
+
+    #Set create_pkl to true if we are interested in creating pkl files from scratch
+    create_pkl = True
+    vol_of_interest = False
+
+
+    if create_pkl:
+        base_series_path = "/home/youy/Documents/Spine/ProcessedData_y/"
+    
+        #Get all series that are processed
+        series_paths = glob(base_series_path + "/*/*/")
+    
+        #Generate downsized pkl files for all series
+        for series_path in series_paths:
+            path_one_level_up = os.path.dirname(series_path)
+            ac_num = path_one_level_up.split("/")[-1]
+            print("ACCESSION NUMBER: ",ac_num)
+            generate_pkl(series_path, ac_num, False)
+            
+
+    #This is used when we want to make a pre-existing full sized pkl to a downsized one
+    else:
+        ac_num = "9128577"
+        print("ACCESSION NUMBER: ", ac_num)
+
+        try:
+            dicom_3d_pre1 = cPickle.load(open("dicom_3d_" + ac_num + ".pkl", "rb"))
+        except:
+            dicom_3d_pre1 = cPickle.load(open("dicom_3d_" + ac_num + ".pkl","rb"),encoding = 'latin1')
+            
+    
+        dicom_3d_pre1_dim = np.shape(dicom_3d_pre1)
+        print("Dimensions of Raw DICOM: ", dicom_3d_pre1_dim)
+
+        #Need to make sure the z-axis length is divisible by 4
+        dicom_3d_pre = dicom_3d_pre1[:,:,1:dicom_3d_pre1_dim[2]-1]
+        dicom_3d_pre_dim = np.shape(dicom_3d_pre)
+    
+        dicom_3d = dicom_3d_pre[:,:,0:((dicom_3d_pre_dim[2])//4)*4]
+    
+        dicom_3d_dim = np.shape(dicom_3d)
+        print("Dimensions of Processed DICOM: ", dicom_3d_dim)
+        
+        #True to downsize the z axis
+        dicom_3d_downsized = downsize_2x(dicom_3d,True)
+    
+        #Look at z axis length to see whether to narrow z-axis by 4x
+        if dicom_3d_dim[2] > 150:
+            dicom_3d_4x_downsized = downsize_2x(dicom_3d_downsized,True)
+        else:
+            dicom_3d_4x_downsized = downsize_2x(dicom_3d_downsized,False)
+    
+        dicom_3d_4x_dim = np.shape(dicom_3d_4x_downsized)
+        print("Dimension of Downsized DICOM: ", dicom_3d_4x_dim)
+        
+        #Save the final downsized image
+        cPickle.dump(dicom_3d_4x_downsized, open("dicom_3d_" + ac_num + "_dwn4x.pkl","wb"))
+    
+    
+#===================================================================================================
+#Getting Sample Image for 3D GHT
+    ac_num = "9128577"
+    downsized_dicom = dicom_3d_" + ac_num + "_dwn4x.pkl"
+    if vol_of_interest:
+        #Get volume of interest
+        sample = volumeOfInterest(downsized_dicom)
+    
+        cPickle.dump(sample, open("dicom_3d_" + ac_num + "_sample.pkl", "wb"))
+        
+
+
+
+#===================================================================================================
+#Getting the plot of necessary 
+    ac_num = "9128577"
+    
+    try:
+        dicom_plot = cPickle.load(open("dicom_3d_" + ac_num + "_dwn4x.pkl", "rb"))
+    except:
+        dicom_plot = cPickle.load(open("dicom_3d_" + ac_num + "_dwn4x.pkl","rb"),encoding = 'latin1')
+    
+    dicom_plot_dim = np.shape(dicom_plot)
+    
     #Frontal
     fig = plt.figure()
     plt.gray()
 
-    for i in range(10):    
-        fig.add_subplot(2,5,i+1)
-        plt.imshow(dicom_3d[:,:,dicom_3d_dim[2]//11 * i])
+    for i in range(5):    
+        fig.add_subplot(1,5,i+1)
+        plt.imshow(dicom_plot[:,:,dicom_plot_dim[2]//6 * i])
     
     #Side 
     fig2 = plt.figure()
     plt.gray()
 
-    for i in range(10):    
-        fig2.add_subplot(2,5,i+1)
-        plt.imshow(dicom_3d[:,dicom_3d_dim[1]//11 * i,:])
+    for i in range(5):    
+        fig2.add_subplot(1,5,i+1)
+        plt.imshow(dicom_plot[:,dicom_plot_dim[1]//6 * i,:])
     
     
     plt.show() 
-'''
+
  
  
 '''
