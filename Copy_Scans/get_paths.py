@@ -4,7 +4,7 @@ import numpy as np
 
 #True if we want to get paths with only fractures
 #False if we want to get paths without any fractures
-fracture = True
+fracture = False
 
 #Get spreadsheet that contains paths to CSpine Accession Numbers
 book = openpyxl.load_workbook('CS_accession_number_paths.xlsx')
