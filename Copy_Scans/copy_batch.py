@@ -5,18 +5,20 @@ import os
 filename = open("path_frac.log","r+")
 
 #Base Destination Directory
-base_path = "/home/youy/Documents/Spine/batch_test3/"
+base_path = "/home/youy/Documents/Spine/no_fracture_raw/"
 
 #Go through each file path and copy to destination
 for path in filename:
     study_id = path.split("/")[-1]
     
-    if os.path.exists(os.path.join(base_path,study_id)) == False:
+    if os.path.exists(os.path.join(base_path,study_id[:-1]+"/")) == False:
         os.mkdir(os.path.join(base_path,study_id[:-1] + "/"))
     
         Source = path[:-1] + "/"
         print("Source: ", Source)
         Dest = os.path.join(base_path,study_id[:-1] + "/")
         print("Destination: ", Dest)
+        
+
         copy_tree(Source,Dest)
-    
+
