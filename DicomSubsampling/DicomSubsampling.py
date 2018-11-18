@@ -134,10 +134,11 @@ def generate_pkl(series_path, ac_num, save_orig=False):
     raw_dicom_3d = create_3d_dicom(series_path)
     
     if save_orig:
-        cPickle.dump(raw_dicom_3d, open("dicom_3d_sample.pkl", "wb"))
+        cPickle.dump(raw_dicom_3d, open("dicom_3d_" + ac_num + ".pkl", "wb"))
     
-    
-    dicom_3d = raw_dicom_3d[:,:,0:((dicom_3d_pre_dim[2])//4)*4]
+    raw_dicom_3d_dim = np.shape(raw_dicom_3d)    
+
+    dicom_3d = raw_dicom_3d[:,:,0:((raw_dicom_3d_dim[2])//4)*4]
     dicom_3d_dim = np.shape(dicom_3d)
     print("Dimensions of Processed DICOM: ", dicom_3d_dim)
     
@@ -175,7 +176,7 @@ if __name__ == '__main__':
     
         #Generate downsized pkl files for all series
         for series_path in series_paths:
-            path_one_level_up = os.path.dirname(series_path)
+            path_one_level_up = os.path.dirname(os.path.dirname(series_path))
             ac_num = path_one_level_up.split("/")[-1]
             print("ACCESSION NUMBER: ",ac_num)
             generate_pkl(series_path, ac_num, False)
@@ -223,7 +224,7 @@ if __name__ == '__main__':
 #===================================================================================================
 #Getting Sample Image for 3D GHT
     ac_num = "9128577"
-    downsized_dicom = dicom_3d_" + ac_num + "_dwn4x.pkl"
+    downsized_dicom = "dicom_3d_" + ac_num + "_dwn4x.pkl"
     if vol_of_interest:
         #Get volume of interest
         sample = volumeOfInterest(downsized_dicom)
