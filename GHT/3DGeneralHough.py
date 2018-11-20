@@ -7,6 +7,7 @@ from skimage.feature import canny
 from scipy.ndimage.filters import sobel
 from mpl_toolkits.mplot3d import Axes3D
 import cv2 as cv
+from scipy import signal
 try:
     import cPickle
 except ImportError:
@@ -47,8 +48,6 @@ def build_r_table(image, origin):
     mag_norm = mag/np.max(mag)
     
     
-    #mag = generic_gradient_magnitude(image, sobel)
-        
     #print(dx[0,0,0], dy[0,0,0], dz[0,0,0], mag_norm[0,0,0])
     
     #print("dx,dy,dz: ", dx.shape,dy.shape,dz.shape)
@@ -101,7 +100,7 @@ def sobel_edges_3d(grayImage):
     return edges
 
 def canny_edges_3d(grayImage):
-    MIN_CANNY_THRESHOLD = 30
+    MIN_CANNY_THRESHOLD = 20
     MAX_CANNY_THRESHOLD = 100
     
     dim = np.shape(grayImage)
@@ -167,7 +166,7 @@ def general_hough_closure(reference_image):
     
     referencePoint = (reference_image.shape[0]/2, reference_image.shape[1]/2, reference_image.shape[2]/2)
     
-    print("Referfence Point: ", referencePoint)
+    print("Reference Point: ", referencePoint)
     
     r_table = build_r_table(reference_image, referencePoint)
     
@@ -183,7 +182,7 @@ def n_max(a, n):
     indices = (-a.ravel()).argsort()[:n]
     indices = (np.unravel_index(i, a.shape) for i in indices)
     return [(a[i], i) for i in indices]
-
+ 
 def test_general_hough(gh, reference_image, query):
     '''
     Uses a GH closure to detect shapes in an image and create nice output
@@ -195,30 +194,70 @@ def test_general_hough(gh, reference_image, query):
     
     accumulator = gh(query_image)
     
+    #Filter accumulator
+    kernel = np.array([[[0.1, 0.6, 0.1], [0.6, 0.8, 0.6], [0.1, 0.6, 0.1]],[[0.6, 0.8, 0.6], [0.8, 1.0, 0.8], [0.6, 0.8, 0.6]],[[0.1, 0.6, 0.1], [0.6, 0.8, 0.6], [0.1, 0.6, 0.1]]])
+    signal.convolve(accumulator,kernel,mode="same")
+    
+    return accumulator
+
+def test():
+
+    ac_num = "9049401"
+    
+    sample_acs = []
+    
+    for file_name in os.listdir("no_fractures"):
+        if file_name.find("sample.pkl") != -1:
+            if file_name.find(str(ac_num)) == -1:
+                sample_acs.append(file_name)
+    
+    print("ACCESION NUMBER: ", ac_num)
+    
+    #Open Downsized Pickle File Containing DICOM Scan
+    dicom_downsized = cPickle.load(open("no_fractures/dicom_3d_" + ac_num + "_dwn4x.pkl","rb"),encoding = 'latin1')
+    print("Size of Downsized Dicom Input: ", np.shape(dicom_downsized))
+    
+    dicom_downsized_dim = np.shape(dicom_downsized)
+    
+    accumulator = np.zeros(dicom_downsized_dim)
+    
+    for sample_ac in sample_acs:
+        print("SAMPLE AC: ", sample_ac)
+        
+        #Open up the Sample that is used as the reference image
+        c12_vertebrae = cPickle.load(open("no_fractures/" + sample_ac,"rb"),encoding = 'latin1')
+        print("Size of Reference Detection Image: ", np.shape(c12_vertebrae))
+    
+    
+    
+        detect_s = general_hough_closure(c12_vertebrae)
+    
+        #Append onto the accumulator matrix the values acquired by each sample used
+        accumulator = accumulator + test_general_hough(detect_s, c12_vertebrae, dicom_downsized)
+    
+    
     fig = plt.figure()
     plt.gray()
     
-    fig.add_subplot(2,2,1)
-    plt.title('Reference image')
-    plt.imshow(reference_image[:,:,reference_dim[2]//2])
+    #fig.add_subplot(2,2,1)
+    #plt.title('Reference image')
+    #plt.imshow(reference_image[:,:,reference_dim[2]//2])
 
-    fig.add_subplot(2,2,2)
+    fig.add_subplot(2,2,1)
     plt.title('Query image')
-    plt.imshow(query_image[:,:,query_dim[2]//2])
+    plt.imshow(dicom_downsized[:,:,dicom_downsized_dim[2]//2])
     
+    
+    fig.add_subplot(2,2,2)
+    plt.title('Accumulator')
+    plt.imshow(accumulator[:,:,dicom_downsized_dim[2]//2])
     
     fig.add_subplot(2,2,3)
-    plt.title('Accumulator')
-    plt.imshow(accumulator[:,:,query_dim[2]//2])
-    
-    fig.add_subplot(2,2,4)
-    plt.title('Detection')
-    plt.imshow(query_image[:,:,query_dim[2]//2])
+    plt.title('Detection of Top 30 Points')
+    plt.imshow(dicom_downsized[:,:,dicom_downsized_dim[2]//2])
 
-    plt.show()
-        
-    #Get numerous top results that can be filtered out
-    m = n_max(accumulator, 30)
+#Get numerous top results that can be filtered out
+    m = n_max(accumulator, 50)
 
     points = []
     x_pts = [] 
@@ -236,35 +275,39 @@ def test_general_hough(gh, reference_image, query):
             y_pts.append(pt[1][1]) 
             z_pts.append(pt[1][2])
     
-    print ("Most Likely Points (x,y,z): ", points)
-    
     plt.scatter(y_pts,x_pts, marker='o', color='r')
-    
-    return
+        
+    print ("Top 30 Most Likely Points (x,y,z,certainty): ", points)
 
-def test():
 
-    #ac_num = "9189512"
-    #ac_num = "9183761"
-    #ac_num = "9128577"
-    #ac_num = "8709635"
-    ac_num = "6239089_1"
-    #ac_num = "5615296_1"
+
+    fig.add_subplot(2,2,4)
+    plt.title('Detection of Top 10 Points')
+    plt.imshow(dicom_downsized[:,:,dicom_downsized_dim[2]//2])
+
+    plt.show()
+
+    #Get numerous top results that can be filtered out
+    top10 = n_max(accumulator, 10)
+
+    top10_points = []
+    top10_x_pts = [] 
+    top10_y_pts = []
+    top10_z_pts = []
     
-    #sample_ac = "9183761"
-    sample_ac = "9128577"
+    highest_prob = top10[0][0]
     
-    print("ACCESION NUMBER: ", ac_num)
-    
-    dicom_downsized = cPickle.load(open("dicom_3d_" + ac_num + "_dwn4x.pkl","rb"),encoding = 'latin1')
-    print("Size of Downsized Dicom Input: ", np.shape(dicom_downsized))
-    
-    c12_vertebrae = cPickle.load(open("dicom_3d_" + sample_ac + "_sample.pkl","rb"),encoding = 'latin1')
-    print("Size of Reference Detection Image: ", np.shape(c12_vertebrae))
-    
-    detect_s = general_hough_closure(c12_vertebrae)
-    
-    test_general_hough(detect_s, c12_vertebrae, dicom_downsized)
+    for pt in top10:
+        #Filter out results so that only the most likely ones get chosen
+        if pt[0] > 0.5*highest_prob:
+            top10_points.append((pt[1][0],pt[1][1],pt[1][2], pt[0]))
+        
+            top10_x_pts.append(pt[1][0])
+            top10_y_pts.append(pt[1][1]) 
+            top10_z_pts.append(pt[1][2])    
+    plt.scatter(top10_y_pts,top10_x_pts, marker='o', color='g')
+
+    plt.show()
     
 '''
     #Testing with 3D Images
