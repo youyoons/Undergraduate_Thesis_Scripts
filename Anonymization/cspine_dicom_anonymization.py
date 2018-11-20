@@ -65,8 +65,7 @@ def process_study(scans,file_names,patient,exclusions,log_path,path_raw,path_pro
 
 
     # Stores the series description that fits the CSpine scans we want
-    valid_series_desc = ["C SPINE BONE SAG 1.2", "C-SPINE BONE SAG 1.2", "C-SPINE SAG", "C-SPINE SPINE BONE SAG",
-                         "CSPINE SAG", "SAG C-SPINE BONE"]
+    valid_series_desc = ["C SPINE BONE SAG 1.2", "C-SPINE BONE SAG 1.2", "C-SPINE SAG", "C-SPINE SPINE BONE SAG","CSPINE SAG", "SAG C-SPINE BONE"]
 
     #for linking log entries
     log_entries = []
