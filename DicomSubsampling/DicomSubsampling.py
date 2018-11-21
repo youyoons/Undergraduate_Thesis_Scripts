@@ -161,7 +161,7 @@ def generate_pkl(series_path, ac_num, save_orig=False):
 
 
 if __name__ == '__main__':
-    os.chdir("C:\\Users\\yoons\\Documents\\4th Year Semester 1\\ESC499 - Thesis\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
+    #os.chdir("C:\\Users\\yoons\\Documents\\4th Year Semester 1\\ESC499 - Thesis\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
 
     #Set create_pkl to true if we are interested in creating pkl files from scratch
     create_pkl = False #If we want to create a downsized pkl
@@ -175,13 +175,15 @@ if __name__ == '__main__':
         
             #Get all series that are processed
             series_paths = glob(base_series_path + "/*/*/")
-        
+            
             #Generate downsized pkl files for all series
             for series_path in series_paths:
                 path_one_level_up = os.path.dirname(os.path.dirname(series_path))
                 ac_num = path_one_level_up.split("/")[-1]
-                print("ACCESSION NUMBER: ",ac_num)
-                generate_pkl(series_path, ac_num, False)
+
+                if os.path.isfile("no_fractures/dicom_3d_" + ac_num + "_dwn4x.pkl") == False:
+                    print("ACCESSION NUMBER: ",ac_num)
+                    generate_pkl(series_path, ac_num, False)
                 
     
         #This is used when we want to make a pre-existing full sized pkl to a downsized one
