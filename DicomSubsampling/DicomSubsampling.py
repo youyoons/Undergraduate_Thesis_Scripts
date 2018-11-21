@@ -98,7 +98,7 @@ def downsize_2x(dicom_3d,narrow_3rd=True):
 '''
 Function: get a dicom image and select a volume of interest
 '''
-def volumeOfInterest(dicom):
+def volumeOfInterest(sample):
     #c12 = np.zeros((30,30,50))
     
     #9183761
@@ -107,7 +107,6 @@ def volumeOfInterest(dicom):
     #9128577
     #sample = dicom[12:50,36:64,18:26]
     
-    sample = dicom[15:47,41:63,20:30]
     sample_dim = np.shape(sample)
     
     
@@ -115,17 +114,17 @@ def volumeOfInterest(dicom):
     fig = plt.figure()
     plt.gray()
 
-    for i in range(5):    
-        fig.add_subplot(1,5,i+1)
-        plt.imshow(sample[:,:,sample_dim[2]//6*i])
+    for i in range(1,6):    
+        fig.add_subplot(1,5,i)
+        plt.imshow(sample[:,:,int(sample_dim[2]/6*i)])
     
     #Side 
     fig2 = plt.figure()
     plt.gray()
 
-    for i in range(5):    
-        fig2.add_subplot(1,5,i+1)
-        plt.imshow(sample[:,sample_dim[1]//6*i,:])
+    for i in range(1,6):    
+        fig2.add_subplot(1,5,i)
+        plt.imshow(sample[:,int(sample_dim[1]/6*i),:])
     
     plt.show()
     
@@ -169,8 +168,6 @@ if __name__ == '__main__':
     create_pkl_from_scratch= True #If we want to do this from raw .dcm files or from a pre-existing full-sized pkl
     vol_of_interest = True #If we want to create a sample.pkl
     plot_downsized = False #If we want to plot the downsized 4x volume
-
-
 
     if create_pkl:
         if create_pkl_from_scratch:
@@ -231,14 +228,15 @@ if __name__ == '__main__':
     #Getting Sample Image for 3D GHT
     if vol_of_interest:
 
-        ac_num = "9049401"  
+        ac_num = "8931305"
+
         try:
             downsized_dicom = cPickle.load(open("no_fractures/dicom_3d_" + ac_num + "_dwn4x.pkl", "rb"))
         except:
             downsized_dicom = cPickle.load(open("no_fractures/dicom_3d_" + ac_num + "_dwn4x.pkl","rb"),encoding = 'latin1')
 
         #Get volume of interest
-        sample = volumeOfInterest(downsized_dicom)
+        sample = volumeOfInterest(downsized_dicom[24:56,46:70,13:37])
     
         cPickle.dump(sample, open("no_fractures/dicom_3d_" + ac_num + "_sample.pkl", "wb"))
         
