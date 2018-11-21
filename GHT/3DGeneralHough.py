@@ -8,6 +8,7 @@ from scipy.ndimage.filters import sobel
 from mpl_toolkits.mplot3d import Axes3D
 import cv2 as cv
 from scipy import signal
+from scipy.ndimage.filters import gaussian_filter
 try:
     import cPickle
 except ImportError:
@@ -193,16 +194,12 @@ def test_general_hough(gh, reference_image, query):
     reference_dim = np.shape(reference_image)
     
     accumulator = gh(query_image)
-    
-    #Filter accumulator
-    kernel = np.array([[[0.1, 0.6, 0.1], [0.6, 0.8, 0.6], [0.1, 0.6, 0.1]],[[0.6, 0.8, 0.6], [0.8, 1.0, 0.8], [0.6, 0.8, 0.6]],[[0.1, 0.6, 0.1], [0.6, 0.8, 0.6], [0.1, 0.6, 0.1]]])
-    signal.convolve(accumulator,kernel,mode="same")
-    
+
     return accumulator
 
 def test():
 
-    ac_num = "9049401"
+    ac_num = "4687879"
     
     sample_acs = []
     
@@ -235,14 +232,11 @@ def test():
         #Append onto the accumulator matrix the values acquired by each sample used
         accumulator = accumulator + test_general_hough(detect_s, c12_vertebrae, dicom_downsized)
     
+    accumulator = gaussian_filter(accumulator,sigma = 0, order = 0)
     
     fig = plt.figure()
     plt.gray()
     
-    #fig.add_subplot(2,2,1)
-    #plt.title('Reference image')
-    #plt.imshow(reference_image[:,:,reference_dim[2]//2])
-
     fig.add_subplot(2,2,1)
     plt.title('Query image')
     plt.imshow(dicom_downsized[:,:,dicom_downsized_dim[2]//2])
@@ -253,11 +247,11 @@ def test():
     plt.imshow(accumulator[:,:,dicom_downsized_dim[2]//2])
     
     fig.add_subplot(2,2,3)
-    plt.title('Detection of Top 30 Points')
+    plt.title('Detection of Top 40 Points')
     plt.imshow(dicom_downsized[:,:,dicom_downsized_dim[2]//2])
 
-#Get numerous top results that can be filtered out
-    m = n_max(accumulator, 50)
+    #Get numerous top results that can be filtered out
+    m = n_max(accumulator, 40)
 
     points = []
     x_pts = [] 
@@ -269,7 +263,7 @@ def test():
     for pt in m:
         #Filter out results so that only the most likely ones get chosen
         if pt[0] > 0.5*highest_prob:
-            points.append((pt[1][0],pt[1][1],pt[1][2], pt[0]))
+            points.append((pt[1][0],pt[1][1],pt[1][2], int(pt[0])))
         
             x_pts.append(pt[1][0])
             y_pts.append(pt[1][1]) 
