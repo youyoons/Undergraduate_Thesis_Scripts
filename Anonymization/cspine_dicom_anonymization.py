@@ -2,8 +2,6 @@ import os
 import sys
 import shutil
 from shutil import copyfile
-import settings
-#import utils
 import cv2
 import SimpleITK
 import numpy as np
@@ -49,10 +47,6 @@ def process_study(scans,file_names,patient,exclusions,log_path,path_raw,path_pro
         else:
             all_series[series].append([instance,file_names[index],series_desc])
 
-    #Remove All Files/Directories Existing within RawData and ProcessedData
-    #os.rmdir("/home/youy/Documents/Spine/RawData_y")
-    #os.rmdir("/home/youy/Documents/Spine/ProcessedData_y")
-
     #create raw and processed directory if they don't exist
     [os.mkdir(path) for path in [path_raw,path_proc] if not os.path.exists(path)]
 
@@ -63,7 +57,6 @@ def process_study(scans,file_names,patient,exclusions,log_path,path_raw,path_pro
     [os.mkdir(path) for path in [study_path_raw,study_path_proc] if not os.path.exists(path)]
 
 
-
     # Stores the series description that fits the CSpine scans we want
     valid_series_desc = ["C SPINE BONE SAG 1.2", "C-SPINE BONE SAG 1.2", "C-SPINE SAG", "C-SPINE SPINE BONE SAG","CSPINE SAG", "SAG C-SPINE BONE"]
 
@@ -72,9 +65,10 @@ def process_study(scans,file_names,patient,exclusions,log_path,path_raw,path_pro
 
     for series in all_series:
         instances = all_series[series]
-
+        print(all_series[series][0][2])
         #Create raw and processed series directories if they do not exist
         if (len(all_series[series])) > 1 and any(all_series[series][0][2] in s for s in valid_series_desc):
+            print("INSIDE")
             #In terms of processed as we remove raw studies right after it is done
             print(os.path.join(study_path_proc,series))
             
@@ -88,13 +82,11 @@ def process_study(scans,file_names,patient,exclusions,log_path,path_raw,path_pro
                     dst = os.path.join(study_path_raw,series,str(scan[0])+".dcm")
 
                     if not os.path.exists(dst):
-                        #shutil.move(src,dst)
                         copyfile(src,dst)
                     else:
                         dst = os.path.join(study_path_raw,series,str(scan[0])+".dcm")
 
                 #dicom to dicom and save
-
                 series_dir = os.path.join(study_path_raw,series)
                 series_files = [os.path.join(series_dir,file_name) for file_name in os.listdir(series_dir)]
 
@@ -163,39 +155,41 @@ def process_scans(raw_data_dir,path_raw,path_proc,log_path):
     #Must be in alphabetical order
     dicom_exclusions = ['AccessionNumber','AdditionalPatientHistory','InstitutionName','NameOfPhysiciansReadingStudy','OtherPatientIDs','OtherPatientIDsSequence','PatientBirthDate','PatientID','PatientName','ReferringPhysicianName']
 
-    patients = os.listdir(raw_data_dir)
-    print(patients)
+    #patients = os.listdir(raw_data_dir)
+    patients = open(raw_data_dir,"r+")    
+
+    #print(patients)
 
     log_entries = []
 
     for patient in patients:
         try:
-            patient_path = os.path.join(raw_data_dir, patient)
+            #patient_path = os.path.join(raw_data_dir, patient)
+            patient_path = patient[:-1]
             print("Looking at dicoms in {}".format(patient_path))
             dicom_filenames = os.listdir(patient_path)
             dicom_files = [file_name for file_name in dicom_filenames if file_name[-4:]==".dcm"]
-            #print(dicom_files)
 
             slices = [pydicom.read_file(os.path.join(patient_path,s)) for s in dicom_files]
-            file_names = [os.path.join(patient_path,s) for s in dicom_files]
-            #print(slices)
 
-            log_line = process_study(slices,file_names,patient,dicom_exclusions,log_path,path_raw,path_proc)
-            #print(log_line)
-            log_entries.extend(log_line)
-            print('-------------------------------------------')
+            proc_path_acnum = os.path.join(path_proc, str(slices[0].AccessionNumber))
+            if os.path.isdir(proc_path_acnum) == False:
+                file_names = [os.path.join(patient_path,s) for s in dicom_files]
+                print("Processed Does not Exist. Processing.")
+                log_line = process_study(slices,file_names,patient,dicom_exclusions,log_path,path_raw,path_proc)
+                log_entries.extend(log_line)
+                print('-------------------------------------------')
 
         except Exception as e:
             print("Error with {} : {}".format(patient,e))
             traceback.print_exc()
 
-    #print(dicom_exclusions)
-    #print(log_entries[0:2])
     save_log(log_path,log_entries,dicom_exclusions)
 
 if __name__=="__main__":
 
-    raw_data_dir = "/home/youy/Documents/Spine/batch_test2/"   
+    #raw_data_dir = "/home/youy/Documents/Spine/batch_test2/"  
+    raw_data_dir = "/home/youy/Documents/ESC499/Undergraduate_Thesis_Scripts/Copy_Scans/path_frac.log"
     path_raw = "/home/youy/Documents/Spine/RawData_y"
     path_proc = "/home/youy/Documents/Spine/ProcessedData_y"
     log_path = "/home/youy/Documents/Spine/linking_log.csv"
