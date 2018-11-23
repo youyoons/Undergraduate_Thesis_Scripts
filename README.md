@@ -1,4 +1,4 @@
-# Undergraduate_Thesis_Scripts
+# 3D Detection, Identification, and Segmentation of Cervical Spine Vertebrae
 This is a collection of the scripts that I have used (that are not in other repositories) for my undergraduate EngSci thesis.
 
 all_acnum_serdesc.py
