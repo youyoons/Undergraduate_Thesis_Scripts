@@ -1,7 +1,7 @@
 # 3D Detection, Identification, and Segmentation of CSpine Vertebrae
 This repository contains all scripts and programs required to successfully and robustly detect the C1 and C2 vertebrae of the (cervical) spine, then segment the detected vertebrae.
 
-Detection Flow
+(#Detection-Flow)
 1. It is important to acquire a list of directory locations for DICOM scans that pertain to my study. A filelist is obtained by running the get_paths.py script with the input being a spreadsheet with information on the DICOM scans. The spreadsheet contains the Accession Number (a primary key of the database), the directory path, and whether fractures exist in C1 and C2. 
 
 2. This filelist is referred to in the anonymization script, where each study (single directory path in filelist) is first copied over to a local workspace, then processed by removing all patient and institution information that is private. The processed studies are organized in such a way that the Study ID is replaced by the Accession Number as the directory name, making it easier to relate back to the spreadsheet in #1.
