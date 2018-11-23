@@ -199,7 +199,7 @@ def test_general_hough(gh, reference_image, query):
 
 def test():
 
-    ac_num = "4687879"
+    ac_num = "6268647"
     
     sample_acs = []
     
@@ -229,8 +229,8 @@ def test():
     
         detect_s = general_hough_closure(c12_vertebrae)
     
-        #Append onto the accumulator matrix the values acquired by each sample used
-        accumulator = accumulator + test_general_hough(detect_s, c12_vertebrae, dicom_downsized)
+        #Get elementwise maximum of accumulator matrix when compared to new sample
+        accumulator = np.maximum(accumulator,test_general_hough(detect_s, c12_vertebrae, dicom_downsized))
     
     accumulator = gaussian_filter(accumulator,sigma = 0, order = 0)
     
