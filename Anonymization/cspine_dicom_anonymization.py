@@ -24,6 +24,11 @@ def inspect_scan(scan_path):
     print(scan)
 
 def process_study(scans,file_names,patient,exclusions,log_path,path_raw,path_proc):
+    num_of_proc = len(os.listdir(path_proc))
+    print("Number of Valid Scans Processed: ", num_of_proc)
+    
+    if num_of_proc == 120:
+        return None
 
     all_series = {} #stores all the series (studies done on a single patient)
 
@@ -58,7 +63,7 @@ def process_study(scans,file_names,patient,exclusions,log_path,path_raw,path_pro
 
 
     # Stores the series description that fits the CSpine scans we want
-    valid_series_desc = ["C SPINE BONE SAG 1.2", "C-SPINE BONE SAG 1.2", "C-SPINE SAG", "C-SPINE SPINE BONE SAG","CSPINE SAG", "SAG C-SPINE BONE"]
+    valid_series_desc = ["CSPINE BONE SAG 1.2", "C SPINE BONE SAG 1.2", "C-SPINE BONE SAG 1.2", "C-SPINE SAG", "C-SPINE SPINE BONE SAG","CSPINE SAG", "SAG C-SPINE BONE"]
 
     #for linking log entries
     log_entries = []
@@ -177,6 +182,9 @@ def process_scans(raw_data_dir,path_raw,path_proc,log_path):
                 file_names = [os.path.join(patient_path,s) for s in dicom_files]
                 print("Processed Does not Exist. Processing.")
                 log_line = process_study(slices,file_names,patient,dicom_exclusions,log_path,path_raw,path_proc)
+         
+                if log_line == None:
+                    break
                 log_entries.extend(log_line)
                 print('-------------------------------------------')
 
