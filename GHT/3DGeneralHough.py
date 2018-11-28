@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import math
 import matplotlib.pyplot as plt
 from collections import defaultdict
 from scipy.misc import imread
@@ -197,156 +198,291 @@ def test_general_hough(gh, reference_image, query):
 
     return accumulator
 
-def test():
-
-    ac_num = "6268647"
-    
+'''
+Function: GHT
+Input: ac_num (an array of accession numbers)
+Purpose: detects C1, C2 vertebrae and displays at both as points and plots
+'''
+def GHT(ac_num):
+    #sample_acs = ["dicom_3d_8214092_sample.pkl"]
     sample_acs = []
-    
+
+    #Get the samples that will be used
     for file_name in os.listdir("no_fractures"):
         if file_name.find("sample.pkl") != -1:
             if file_name.find(str(ac_num)) == -1:
                 sample_acs.append(file_name)
     
-    print("ACCESION NUMBER: ", ac_num)
+    print("ACCESSION NUMBER: ", ac_num)
+    
     
     #Open Downsized Pickle File Containing DICOM Scan
-    dicom_downsized = cPickle.load(open("no_fractures/dicom_3d_" + ac_num + "_dwn4x.pkl","rb"),encoding = 'latin1')
-    print("Size of Downsized Dicom Input: ", np.shape(dicom_downsized))
+    dicom_dwn4x_pp = cPickle.load(open("no_fractures/dicom_3d_" + ac_num + "_dwn4x.pkl","rb"),encoding = 'latin1')
+    dicom_dwn4x_pp_dim = np.shape(dicom_dwn4x_pp)
+    print("Size of Downsized Dicom Input: ", dicom_dwn4x_pp_dim)
+
+    #Specify Prior Limits to Volume
+    x1 = 5
+    x2 = 65
+    y1 = 15
+    y2 = 80
+
     
-    dicom_downsized_dim = np.shape(dicom_downsized)
-    
-    accumulator = np.zeros(dicom_downsized_dim)
+    #Get specific region of focus (based on prior information
+    dicom_dwn4x = dicom_dwn4x_pp[x1:x2,y1:y2,:]
+    dicom_dwn4x_dim = np.shape(dicom_dwn4x)
+    print("Size of Specific Dicom: ", dicom_dwn4x_dim)
+
+
+    #Initialize Accumulator that will be used to get top points
+    accumulator = np.zeros(dicom_dwn4x_dim)
     
     for sample_ac in sample_acs:
         print("SAMPLE AC: ", sample_ac)
         
         #Open up the Sample that is used as the reference image
-        c12_vertebrae = cPickle.load(open("no_fractures/" + sample_ac,"rb"),encoding = 'latin1')
-        print("Size of Reference Detection Image: ", np.shape(c12_vertebrae))
+        sample = cPickle.load(open("no_fractures/" + sample_ac,"rb"),encoding = 'latin1')
+        print("Size of Reference Detection Image: ", np.shape(sample))
     
     
     
-        detect_s = general_hough_closure(c12_vertebrae)
+        detect_s = general_hough_closure(sample)
     
         #Get elementwise maximum of accumulator matrix when compared to new sample
-        accumulator = np.maximum(accumulator,test_general_hough(detect_s, c12_vertebrae, dicom_downsized))
+        accumulator = np.maximum(accumulator,test_general_hough(detect_s, sample, dicom_dwn4x))
     
-    accumulator = gaussian_filter(accumulator,sigma = 0, order = 0)
+    final_accumulator = accumulator
     
-    fig = plt.figure()
+    
+    '''
+    #Find sample that is most relevant to accumulator
+    identical_elements = 0
+    detected_sample = []
+    detected_sample_ac = ""
+    FA = np.array(final_accumulator)
+    print("The size of FA is: ", np.shape(FA))
+    
+    for sample_ac in sample_acs:
+        print("SAMPLE AC: ", sample_ac)
+        
+        #Open up the Sample that is used as the reference image
+        sample = cPickle.load(open("no_fractures/" + sample_ac,"rb"),encoding = 'latin1')
+        print("Size of Reference Detection Image: ", np.shape(sample))
+     
+    
+        detect_s = general_hough_closure(sample)
+    
+        #Get elementwise maximum of accumulator matrix when compared to new sample
+        accumulator = test_general_hough(detect_s, sample, dicom_dwn4x)
+        
+        A = np.array(accumulator)
+        print("The size of A is: ",np.shape(A))
+        if np.sum(A==FA) > identical_elements:
+            identical_elements = np.sum(A==FA)
+            detected_sample_ac = sample_ac
+            detected_sample = sample
+        
+    detected_sample_dim = np.shape(detected_sample)
+    print(detected_sample_dim)
+    print("The sample that detected the region of interest the best was: ", detected_sample_ac)
+    '''
+    
+    std_dev = 1.0
+    final_accumulator = gaussian_filter(final_accumulator,sigma = std_dev, order = 0)
+
+    fig = plt.figure(num = ac_num + "_sigma" + str(std_dev), figsize = (12,12))
     plt.gray()
-    
+
+    fig.suptitle(ac_num + "_sigma" + str(std_dev))
+
     fig.add_subplot(2,2,1)
     plt.title('Query image')
-    plt.imshow(dicom_downsized[:,:,dicom_downsized_dim[2]//2])
+    plt.imshow(dicom_dwn4x_pp[:,:,dicom_dwn4x_pp_dim[2]//2])
     
     
     fig.add_subplot(2,2,2)
     plt.title('Accumulator')
-    plt.imshow(accumulator[:,:,dicom_downsized_dim[2]//2])
+    plt.imshow(final_accumulator[:,:,dicom_dwn4x_dim[2]//2])
     
     fig.add_subplot(2,2,3)
     plt.title('Detection of Top 40 Points')
-    plt.imshow(dicom_downsized[:,:,dicom_downsized_dim[2]//2])
+    plt.imshow(dicom_dwn4x_pp[:,:,dicom_dwn4x_dim[2]//2])
 
-    #Get numerous top results that can be filtered out
-    m = n_max(accumulator, 40)
+    #Get top 40 results that can be filtered out
+    m = n_max(final_accumulator, 40)
 
     points = []
     x_pts = [] 
     y_pts = []
     z_pts = []
     
-    highest_prob = m[0][0]
+    #highest_prob = m[0][0]
     
     for pt in m:
-        #Filter out results so that only the most likely ones get chosen
-        if pt[0] > 0.5*highest_prob:
-            points.append((pt[1][0],pt[1][1],pt[1][2], int(pt[0])))
-        
-            x_pts.append(pt[1][0])
-            y_pts.append(pt[1][1]) 
-            z_pts.append(pt[1][2])
+        points.append((pt[1][0] + x1,pt[1][1] + y1,pt[1][2], int(pt[0])))
     
-    plt.scatter(y_pts,x_pts, marker='o', color='r')
+        x_pts.append(pt[1][0]+x1)
+        y_pts.append(pt[1][1]+y1) 
+        z_pts.append(pt[1][2])
+    
+    plt.scatter(y_pts,x_pts, marker='.', color='r')
         
-    print ("Top 30 Most Likely Points (x,y,z,certainty): ", points)
+    print ("Top 40 Most Likely Points (x,y,z,certainty): ", points)
 
 
 
     fig.add_subplot(2,2,4)
-    plt.title('Detection of Top 10 Points')
-    plt.imshow(dicom_downsized[:,:,dicom_downsized_dim[2]//2])
+    plt.title('Points after Non-Maximal Suppression')
+    plt.imshow(dicom_dwn4x_pp[:,:,dicom_dwn4x_pp_dim[2]//2])
 
-    plt.show()
-
+    '''
     #Get numerous top results that can be filtered out
-    top10 = n_max(accumulator, 10)
+    top10 = n_max(final_accumulator, 10)
 
     top10_points = []
     top10_x_pts = [] 
     top10_y_pts = []
     top10_z_pts = []
-    
-    highest_prob = top10[0][0]
+
+
+    #highest_prob = top10[0][0]
     
     for pt in top10:
-        #Filter out results so that only the most likely ones get chosen
-        if pt[0] > 0.5*highest_prob:
-            top10_points.append((pt[1][0],pt[1][1],pt[1][2], pt[0]))
-        
-            top10_x_pts.append(pt[1][0])
-            top10_y_pts.append(pt[1][1]) 
-            top10_z_pts.append(pt[1][2])    
-    plt.scatter(top10_y_pts,top10_x_pts, marker='o', color='g')
+        top10_points.append((pt[1][0] + x1,pt[1][1] + y1,pt[1][2], pt[0]))
+    
+        top10_x_pts.append(pt[1][0]+x1)
+        top10_y_pts.append(pt[1][1]+y1) 
+        top10_z_pts.append(pt[1][2])    
 
+    plt.scatter(top10_y_pts,top10_x_pts, marker='o', color='g')
+    '''
+
+    #Perform non-maximal suppression
+    nms_pts = []
+    
+    for pt in points:
+        if len(nms_pts) == 0:
+            nms_pts.append(pt)
+        else:
+            counter = 0
+            for i in range(len(nms_pts)):
+                if math.sqrt((nms_pts[i][0]-pt[0])**2 + (nms_pts[i][1]-pt[1])**2 + (nms_pts[i][2]-pt[2])**2) > 10:
+                    counter = counter + 1
+                else:
+                    if pt[3] > nms_pts[i][3]:
+                        nms_pts[i] = pt
+            
+            if counter == len(nms_pts):
+                nms_pts.append(pt)
+  
+        
+    print("Non-Maximal Suppression Points: ", nms_pts)
+  
+  
+    #Sliding sample across volume around detected points to find accurate point
+    #sample_vol_pp = np.array(detected_sample)
+    #sample_vol = np.ndarray.flatten(sample_vol_pp)
+    #print(np.shape(sample_vol))
+    
+    optimal_pt = [0,0]
+    max_cross_correl_val = -float('inf')
+    
+    for pt in nms_pts:
+        print("The point being investigated is: ", pt)
+        #print("The detected sample dim is: ", detected_sample_dim)
+        for i in range(-8,9):
+            for j in range(-8,9):
+                for k in range(-2,3):
+                    cross_correl_val = 0
+                    for sample_ac in sample_acs:
+                        #print("Info: ", sample_ac)
+                        sample_vol_pp1 = cPickle.load(open("no_fractures/" + sample_ac,"rb"),encoding = 'latin1')
+                        sample_vol_pp2 = np.array(sample_vol_pp1)
+                        sample_vol = np.ndarray.flatten(sample_vol_pp2)
+                        sample_dim = np.shape(sample_vol_pp1)
+                        
+                        
+                        x1 = pt[0] - sample_dim[0]//2 + i
+                        x2 = x1 + sample_dim[0]
+                        
+                        y1 = pt[1] - sample_dim[1]//2 + j
+                        y2 = y1 + sample_dim[1]
+                        
+                        z1 = pt[2] - sample_dim[2]//2 + k
+                        z2 = z1 + sample_dim[2]
+                        
+                        
+                        if x1 < 0 or y1 < 0 or z1 < 0:
+                            break
+                        #print(x2-x1)
+                        #print(y2-y1)
+                        #print(z2-z1)
+                        #print(x1)
+                        #print(x2)
+                        #print(y1)
+                        #print(y2)
+                        
+                        #print(x1)
+                        current_vol_pp = np.array(dicom_dwn4x_pp[x1:x2,y1:y2,z1:z2])
+                        current_vol = np.ndarray.flatten(current_vol_pp)
+                        
+                        #print("Sample Dim: ",sample_dim)
+                        #print("Current Dim: ",np.shape(current_vol_pp))
+                        
+                        if x1 < 0:
+                            cross_correl_val = cross_correl_val + np.dot(sample_vol[sample_dim[0]-(x2-x1):sample_dim[0],:,:], current_vol)
+                        else:
+                            cross_correl_val = cross_correl_val + np.dot(sample_vol, current_vol)
+                        
+                    if cross_correl_val > max_cross_correl_val:
+                        max_cross_correl_val = cross_correl_val
+                        print("The cross correlation value is: ", cross_correl_val)
+                        optimal_pt = [pt[0]+i,pt[1]+j, pt[2]+k]
+                        print("The optimal point currently is: ", optimal_pt)
+                    
+    print("The Final Detection point is: ",optimal_pt)
+    
+    print(sample_acs)
+                
+                
+    
+  
+    #Plot non-maximal suppression points
+    nms_x_pts = [] 
+    nms_y_pts = []
+    nms_z_pts = []
+    
+    for pt in nms_pts:
+        nms_x_pts.append(pt[0])
+        nms_y_pts.append(pt[1]) 
+        nms_z_pts.append(pt[2])    
+
+
+    plt.scatter(nms_y_pts,nms_x_pts, marker='o', color='g')
+    plt.scatter(optimal_pt[1],optimal_pt[0], marker='x', color='y')
+    
     plt.show()
     
-'''
-    #Testing with 3D Images
-
-    #Testing with a hollow cube
-    dicom_3d = np.zeros((40,40,40))
-    #Make both YZ planes have white sides
-    dicom_3d[10:15,10:30,10:30] = 127
-    dicom_3d[25:30,10:30,10:30] = 127
-    
-    #XZ Planes
-    dicom_3d[10:30,10:15,10:30] = 127
-    dicom_3d[10:30,25:30,10:30] = 127
-    
-    #XY Planes
-    dicom_3d[10:30,10:30,10:15] = 127
-    dicom_3d[10:30,10:30,25:30] = 127
-
-    print(np.shape(dicom_3d))
-    #print(dicom_3d[3,3,4])
-    
-    
-    #Creating a test image
-    test_3d = np.zeros((40,40,80))
-    test_3d[0:40,0:40,25:45] = dicom_3d[0:40,0:40,10:30]
-    test_3d[13:27,13:27,28:42] = 0
-    test_3d[2:22,10:30,2:22] = 170
-    test_3d[6:18,14:26,6:18] = 0
-    
-    
-    #fig = plt.figure()
-    #fig.add_subplot(1,2,1)
-    #plt.imshow(dicom_3d[:,:,20])
-    #fig.add_subplot(1,2,2)
-    #plt.imshow(test_3d[:,:,20])
-    
-    #plt.show()
-'''
+    #Save Figure
+    #plt.savefig(ac_num + "_sigma" + str(std_dev) + ".png")
 
     
 
 if __name__ == '__main__':
     os.chdir("C:\\Users\\yoons\\Documents\\4th Year Semester 1\\ESC499 - Thesis\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
+    
+    ac_nums_pp = os.listdir("no_fractures/")
+    ac_nums = []
+    
+    for ac_num_pp in ac_nums_pp:
+        str1 = ac_num_pp.split("dicom_3d_")[1]
+        str2 = str1.split("_")[0]
         
-    #os.chdir('C:\\Users\\yoons\\Documents\\4th Year Semester 1\\ESC499 - Thesis\\Undergraduate Thesis Scripts')
-    test()
+        ac_nums.append(str2)
+
+    #Get the detection results for the given accession number(s)
+    for ac_num in ac_nums[40:50]:
+        print(ac_num)
+        GHT(ac_num)
     
     
