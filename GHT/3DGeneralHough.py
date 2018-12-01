@@ -204,14 +204,14 @@ Input: ac_num (an array of accession numbers)
 Purpose: detects C1, C2 vertebrae and displays at both as points and plots
 '''
 def GHT(ac_num):
-    #sample_acs = ["dicom_3d_8214092_sample.pkl"]
-    sample_acs = []
+    #reference_acs = ["dicom_3d_8214092_reference.pkl"]
+    reference_acs = []
 
-    #Get the samples that will be used
+    #Get the references that will be used
     for file_name in os.listdir("no_fractures"):
-        if file_name.find("sample.pkl") != -1:
+        if file_name.find("reference.pkl") != -1:
             if file_name.find(str(ac_num)) == -1:
-                sample_acs.append(file_name)
+                reference_acs.append(file_name)
     
     print("ACCESSION NUMBER: ", ac_num)
     
@@ -237,54 +237,54 @@ def GHT(ac_num):
     #Initialize Accumulator that will be used to get top points
     accumulator = np.zeros(dicom_dwn4x_dim)
     
-    for sample_ac in sample_acs:
-        print("SAMPLE AC: ", sample_ac)
+    for reference_ac in reference_acs:
+        print("REFERENCE AC: ", reference_ac)
         
-        #Open up the Sample that is used as the reference image
-        sample = cPickle.load(open("no_fractures/" + sample_ac,"rb"),encoding = 'latin1')
-        print("Size of Reference Detection Image: ", np.shape(sample))
+        #Open up the Reference that is used as the reference image
+        reference = cPickle.load(open("no_fractures/" + reference_ac,"rb"),encoding = 'latin1')
+        print("Size of Reference Image: ", np.shape(reference))
     
     
     
-        detect_s = general_hough_closure(sample)
+        detect_s = general_hough_closure(reference)
     
-        #Get elementwise maximum of accumulator matrix when compared to new sample
-        accumulator = np.maximum(accumulator,test_general_hough(detect_s, sample, dicom_dwn4x))
+        #Get elementwise maximum of accumulator matrix when compared to new reference
+        accumulator = np.maximum(accumulator,test_general_hough(detect_s, reference, dicom_dwn4x))
     
     final_accumulator = accumulator
     
     
     '''
-    #Find sample that is most relevant to accumulator
+    #Find reference that is most relevant to accumulator
     identical_elements = 0
-    detected_sample = []
-    detected_sample_ac = ""
+    detected_refrence = []
+    detected_reference_ac = ""
     FA = np.array(final_accumulator)
     print("The size of FA is: ", np.shape(FA))
     
-    for sample_ac in sample_acs:
-        print("SAMPLE AC: ", sample_ac)
+    for reference_ac in reference_acs:
+        print("REFERENCE AC: ", reference_ac)
         
-        #Open up the Sample that is used as the reference image
-        sample = cPickle.load(open("no_fractures/" + sample_ac,"rb"),encoding = 'latin1')
-        print("Size of Reference Detection Image: ", np.shape(sample))
+        #Open up the Reference that is used as the reference image
+        reference = cPickle.load(open("no_fractures/" + reference_ac,"rb"),encoding = 'latin1')
+        print("Size of Reference Detection Image: ", np.shape(reference))
      
     
-        detect_s = general_hough_closure(sample)
+        detect_s = general_hough_closure(reference)
     
-        #Get elementwise maximum of accumulator matrix when compared to new sample
-        accumulator = test_general_hough(detect_s, sample, dicom_dwn4x)
+        #Get elementwise maximum of accumulator matrix when compared to new reference
+        accumulator = test_general_hough(detect_s, reference, dicom_dwn4x)
         
         A = np.array(accumulator)
         print("The size of A is: ",np.shape(A))
         if np.sum(A==FA) > identical_elements:
             identical_elements = np.sum(A==FA)
-            detected_sample_ac = sample_ac
-            detected_sample = sample
-        
-    detected_sample_dim = np.shape(detected_sample)
-    print(detected_sample_dim)
-    print("The sample that detected the region of interest the best was: ", detected_sample_ac)
+            detected_reference_ac = reference_ac
+            detected_reference = reference
+            
+    detected_reference_dim = np.shape(detected_reference)
+    print(detected_reference_dim)
+    print("The reference that detected the region of interest the best was: ", detected_reference_ac)
     '''
     
     std_dev = 1.0
@@ -379,60 +379,51 @@ def GHT(ac_num):
     print("Non-Maximal Suppression Points: ", nms_pts)
   
   
-    #Sliding sample across volume around detected points to find accurate point
-    #sample_vol_pp = np.array(detected_sample)
-    #sample_vol = np.ndarray.flatten(sample_vol_pp)
-    #print(np.shape(sample_vol))
+    #Sliding reference across volume around detected points to find accurate point
+    #reference_vol_pp = np.array(reference_sample)
+    #reference_vol = np.ndarray.flatten(reference_vol_pp)
+    #print(np.shape(reference_vol))
     
     optimal_pt = [0,0]
     max_cross_correl_val = -float('inf')
     
     for pt in nms_pts:
         print("The point being investigated is: ", pt)
-        #print("The detected sample dim is: ", detected_sample_dim)
+        #print("The detected reference dim is: ", detected_reference_dim)
         for i in range(-8,9):
             for j in range(-8,9):
                 for k in range(-2,3):
                     cross_correl_val = 0
-                    for sample_ac in sample_acs:
-                        #print("Info: ", sample_ac)
-                        sample_vol_pp1 = cPickle.load(open("no_fractures/" + sample_ac,"rb"),encoding = 'latin1')
-                        sample_vol_pp2 = np.array(sample_vol_pp1)
-                        sample_vol = np.ndarray.flatten(sample_vol_pp2)
-                        sample_dim = np.shape(sample_vol_pp1)
+                    for reference_ac in reference_acs:
+                        reference_vol_pp1 = cPickle.load(open("no_fractures/" + reference_ac,"rb"),encoding = 'latin1')
+                        reference_vol_pp2 = np.array(reference_vol_pp1)
+                        reference_vol = np.ndarray.flatten(reference_vol_pp2)
+                        reference_dim = np.shape(reference_vol_pp1)
                         
                         
-                        x1 = pt[0] - sample_dim[0]//2 + i
-                        x2 = x1 + sample_dim[0]
+                        x1 = pt[0] - reference_dim[0]//2 + i
+                        x2 = x1 + reference_dim[0]
                         
-                        y1 = pt[1] - sample_dim[1]//2 + j
-                        y2 = y1 + sample_dim[1]
+                        y1 = pt[1] - reference_dim[1]//2 + j
+                        y2 = y1 + reference_dim[1]
                         
-                        z1 = pt[2] - sample_dim[2]//2 + k
-                        z2 = z1 + sample_dim[2]
+                        z1 = pt[2] - reference_dim[2]//2 + k
+                        z2 = z1 + reference_dim[2]
                         
-                        
+                        #Exit current slide location if out of bounds
                         if x1 < 0 or y1 < 0 or z1 < 0:
                             break
-                        #print(x2-x1)
-                        #print(y2-y1)
-                        #print(z2-z1)
-                        #print(x1)
-                        #print(x2)
-                        #print(y1)
-                        #print(y2)
                         
-                        #print(x1)
                         current_vol_pp = np.array(dicom_dwn4x_pp[x1:x2,y1:y2,z1:z2])
                         current_vol = np.ndarray.flatten(current_vol_pp)
                         
-                        #print("Sample Dim: ",sample_dim)
+                        #print("Reference Dim: ",reference_dim)
                         #print("Current Dim: ",np.shape(current_vol_pp))
                         
                         if x1 < 0:
-                            cross_correl_val = cross_correl_val + np.dot(sample_vol[sample_dim[0]-(x2-x1):sample_dim[0],:,:], current_vol)
+                            cross_correl_val = cross_correl_val + np.dot(reference_vol[reference_dim[0]-(x2-x1):reference_dim[0],:,:], current_vol)
                         else:
-                            cross_correl_val = cross_correl_val + np.dot(sample_vol, current_vol)
+                            cross_correl_val = cross_correl_val + np.dot(reference_vol, current_vol)
                         
                     if cross_correl_val > max_cross_correl_val:
                         max_cross_correl_val = cross_correl_val
@@ -442,7 +433,7 @@ def GHT(ac_num):
                     
     print("The Final Detection point is: ",optimal_pt)
     
-    print(sample_acs)
+    print(reference_acs)
                 
                 
     
@@ -481,7 +472,7 @@ if __name__ == '__main__':
         ac_nums.append(str2)
 
     #Get the detection results for the given accession number(s)
-    for ac_num in ac_nums[40:50]:
+    for ac_num in ac_nums[0:1]:
         print(ac_num)
         GHT(ac_num)
     
