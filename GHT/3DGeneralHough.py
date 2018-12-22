@@ -254,39 +254,6 @@ def GHT(ac_num):
     final_accumulator = accumulator
     
     
-    '''
-    #Find reference that is most relevant to accumulator
-    identical_elements = 0
-    detected_refrence = []
-    detected_reference_ac = ""
-    FA = np.array(final_accumulator)
-    print("The size of FA is: ", np.shape(FA))
-    
-    for reference_ac in reference_acs:
-        print("REFERENCE AC: ", reference_ac)
-        
-        #Open up the Reference that is used as the reference image
-        reference = cPickle.load(open("no_fractures/" + reference_ac,"rb"),encoding = 'latin1')
-        print("Size of Reference Detection Image: ", np.shape(reference))
-     
-    
-        detect_s = general_hough_closure(reference)
-    
-        #Get elementwise maximum of accumulator matrix when compared to new reference
-        accumulator = test_general_hough(detect_s, reference, dicom_dwn4x)
-        
-        A = np.array(accumulator)
-        print("The size of A is: ",np.shape(A))
-        if np.sum(A==FA) > identical_elements:
-            identical_elements = np.sum(A==FA)
-            detected_reference_ac = reference_ac
-            detected_reference = reference
-            
-    detected_reference_dim = np.shape(detected_reference)
-    print(detected_reference_dim)
-    print("The reference that detected the region of interest the best was: ", detected_reference_ac)
-    '''
-    
     std_dev = 1.0
     final_accumulator = gaussian_filter(final_accumulator,sigma = std_dev, order = 0)
 
@@ -348,27 +315,7 @@ def GHT(ac_num):
     plt.title('Non-Maximal Suppression and Optimal Points')
     plt.imshow(dicom_dwn4x_pp[:,:,dicom_dwn4x_pp_dim[2]//2])
 
-    '''
-    #Get numerous top results that can be filtered out
-    top10 = n_max(final_accumulator, 10)
 
-    top10_points = []
-    top10_x_pts = [] 
-    top10_y_pts = []
-    top10_z_pts = []
-
-
-    #highest_prob = top10[0][0]
-    
-    for pt in top10:
-        top10_points.append((pt[1][0] + x1,pt[1][1] + y1,pt[1][2], pt[0]))
-    
-        top10_x_pts.append(pt[1][0]+x1)
-        top10_y_pts.append(pt[1][1]+y1) 
-        top10_z_pts.append(pt[1][2])    
-
-    plt.scatter(top10_y_pts,top10_x_pts, marker='o', color='g')
-    '''
 
     #Perform non-maximal suppression
     nms_pts = []
@@ -393,9 +340,6 @@ def GHT(ac_num):
   
   
     #Sliding reference across volume around detected points to find accurate point
-    #reference_vol_pp = np.array(reference_sample)
-    #reference_vol = np.ndarray.flatten(reference_vol_pp)
-    #print(np.shape(reference_vol))
     
     optimal_pt = [0,0]
     max_cross_correl_val = -float('inf')
@@ -413,7 +357,7 @@ def GHT(ac_num):
             for j in range(-6,7):
                 for k in range(-2,3):
                     cross_correl_val = 0
-                    for reference_ac in reference_acs:
+                    for reference_ac in reference_acs[0:1]:
                         if os.path.isfile("no_fractures/edge_" + reference_ac):
                             reference_vol_pp1 = cPickle.load(open("no_fractures/edge_" + reference_ac,"rb"),encoding = 'latin1')
                             reference_vol = np.ndarray.flatten(reference_vol_pp1)
@@ -454,11 +398,10 @@ def GHT(ac_num):
                         if x1 < 0 or y1 < 0 or z1 < 0:
                             break
                             
-                        #if x2 > query_size[0] or y2 > query_size[1] or z2 > query_size[3]:
+                        if x2 > query_size[0] or y2 > query_size[1] or z2 > query_size[3]:
                             break
 
-                        #print("Reference Dim: ",reference_dim)
-                        #print("Current Dim: ",np.shape(current_vol_pp))
+
                         
                         #Use normalized values
                         reference_vol_norm = reference_vol/np.linalg.norm(reference_vol)
@@ -504,7 +447,7 @@ def GHT(ac_num):
     #Add plot for heat map
     for i in range(2):
         try:
-            print(heat_map[4:10,4:10,3])
+            #print(heat_map[4:10,4:10,3])
             heat_map = heat_maps[i]
             heat_map_norm = 256*heat_map/np.max(heat_map)
             fig.add_subplot(2,4,7+i)
@@ -522,7 +465,7 @@ def GHT(ac_num):
     
 
 if __name__ == '__main__':
-    os.chdir("C:\\Users\\yoons\\Documents\\4th Year Semester 1\\ESC499 - Thesis\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
+    os.chdir("C:\\Users\\yoons\\Documents\\4th Year Semester 2\\ESC499 - Thesis\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
     
     ac_nums_pp = os.listdir("no_fractures/")
     ac_nums = []
@@ -542,7 +485,7 @@ if __name__ == '__main__':
     i = 0
     #print(ac_nums)
     
-    for ac_num in ac_nums[9:10]:
+    for ac_num in ac_nums[0:3]:
         print(ac_num)
         optimal_pt = GHT(ac_num)
         print("Detected Optimal Point: ", optimal_pt)
