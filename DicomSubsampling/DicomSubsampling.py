@@ -11,6 +11,7 @@ try:
 except ImportError:
     import pickle as cPickle
 
+#===================================================================================================
 def create_dicom_png(series_path):
     dicom_filenames = sorted(os.listdir(series_path))
     dicom_files = [file_name for file_name in dicom_filenames if file_name[-4:] == ".dcm"]
@@ -165,6 +166,8 @@ if __name__ == '__main__':
     plot_downsized = False #If we want to plot the downsized 4x volume
 
 
+
+#===================================================================================================
     #Want to create downsized pickle object file
     if create_pkl:
         if create_pkl_from_scratch:
@@ -201,10 +204,10 @@ if __name__ == '__main__':
     #Getting Reference Image for 3D GHT
     if vol_of_interest:
 
-        ac_num = "4687879"
-        x = 37 
-        y = 30
-        z = 19
+        ac_num = "7396455"
+        x = 48
+        y = 54
+        z = 17
         x1 = x - 18
         x2 = x + 18
         y1 = y - 12
@@ -249,21 +252,17 @@ if __name__ == '__main__':
         fig = plt.figure()
         plt.gray()
     
-        for i in range(5):    
-            fig.add_subplot(5,1,i+1)
-            plt.imshow(dicom_plot[:,:,dicom_plot_dim[2]//6 * i])
-        
+        for i in range(1,6):    
+            fig.add_subplot(1,5,i)
+            plt.imshow(dicom_plot[:,:,int(dicom_plot_dim[2]/6*i)])
         
         #Side 
         fig2 = plt.figure()
         plt.gray()
     
-        for i in range(5):    
-            fig2.add_subplot(5,1,i+1)
-            plt.imshow(dicom_plot[:,dicom_plot_dim[1]//6 * i,:])
-        
+        for i in range(1,6):    
+            fig2.add_subplot(1,5,i)
+            plt.imshow(dicom_plot[:,int(dicom_plot_dim[1]/6*i),:])
         
         plt.show() 
         
-
-
