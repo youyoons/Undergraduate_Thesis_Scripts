@@ -102,8 +102,8 @@ def sobel_edges_3d(grayImage):
     return edges
 
 def canny_edges_3d(grayImage):
-    MIN_CANNY_THRESHOLD = 20
-    MAX_CANNY_THRESHOLD = 100
+    MIN_CANNY_THRESHOLD = 60
+    MAX_CANNY_THRESHOLD = 150
     
     dim = np.shape(grayImage)
     
@@ -112,7 +112,7 @@ def canny_edges_3d(grayImage):
     edges_z = np.zeros(grayImage.shape, dtype=bool) 
     edges = np.zeros(grayImage.shape, dtype=bool) 
     
-    
+
     for i in range(dim[0]):
         edges_x[i,:,:] = canny(grayImage[i,:,:], low_threshold=MIN_CANNY_THRESHOLD, high_threshold=MAX_CANNY_THRESHOLD, sigma = 0)
    
@@ -209,7 +209,7 @@ def GHT(ac_num):
 
     #Get the references that will be used
     for file_name in os.listdir("no_fractures"):
-        if file_name.find("reference.pkl") != -1:
+        if file_name.find("reference.pkl") != -1 and file_name.find("edge") == -1:
             if file_name.find(str(ac_num)) == -1:
                 reference_acs.append(file_name)
     
@@ -290,23 +290,36 @@ def GHT(ac_num):
     std_dev = 1.0
     final_accumulator = gaussian_filter(final_accumulator,sigma = std_dev, order = 0)
 
-    fig = plt.figure(num = ac_num + "_sigma" + str(std_dev), figsize = (12,12))
+    std_dev_edges = 0.2
+    query_edges = canny_edges_3d(dicom_dwn4x_pp)
+    query_edges_blurred = gaussian_filter(np.multiply(query_edges,50),sigma = std_dev_edges, order = 0)
+
+    fig = plt.figure(num = ac_num + "_sigma" + str(std_dev), figsize = (24,12))
     plt.gray()
 
     fig.suptitle(ac_num + "_sigma" + str(std_dev))
 
-    fig.add_subplot(2,2,1)
-    plt.title('Query image')
+    fig.add_subplot(2,4,1)
+    plt.title('Query Image')
     plt.imshow(dicom_dwn4x_pp[:,:,dicom_dwn4x_pp_dim[2]//2])
+    #plt.imshow(query_edges[:,:,dicom_dwn4x_pp_dim[2]//2])
     
+    fig.add_subplot(2,4,2)
+    plt.title('Query Image Edges')
+    plt.imshow(query_edges[:,:,dicom_dwn4x_pp_dim[2]//2])
     
-    fig.add_subplot(2,2,2)
+    fig.add_subplot(2,4,3)
+    plt.title('Query Image Edges Blurred')
+    plt.imshow(query_edges_blurred[:,:,dicom_dwn4x_pp_dim[2]//2])
+    
+    fig.add_subplot(2,4,4)
     plt.title('Accumulator')
     plt.imshow(final_accumulator[:,:,dicom_dwn4x_dim[2]//2])
-    
-    fig.add_subplot(2,2,3)
+     
+    fig.add_subplot(2,4,5)
     plt.title('Detection of Top 40 Points')
     plt.imshow(dicom_dwn4x_pp[:,:,dicom_dwn4x_dim[2]//2])
+    #plt.imshow(query_edges[:,:,dicom_dwn4x_dim[2]//2])
 
     #Get top 40 results that can be filtered out
     m = n_max(final_accumulator, 40)
@@ -331,8 +344,8 @@ def GHT(ac_num):
 
 
 
-    fig.add_subplot(2,2,4)
-    plt.title('Points after Non-Maximal Suppression')
+    fig.add_subplot(2,4,6)
+    plt.title('Non-Maximal Suppression and Optimal Points')
     plt.imshow(dicom_dwn4x_pp[:,:,dicom_dwn4x_pp_dim[2]//2])
 
     '''
@@ -387,20 +400,40 @@ def GHT(ac_num):
     optimal_pt = [0,0]
     max_cross_correl_val = -float('inf')
     
+    heat_maps = []
+    
+    
+    print("References ACs: ", reference_acs)
+    
     for pt in nms_pts:
+        heat_map = np.zeros((13,13,5))
         print("The point being investigated is: ", pt)
         #print("The detected reference dim is: ", detected_reference_dim)
-        for i in range(-8,9):
-            for j in range(-8,9):
+        for i in range(-6,7):
+            for j in range(-6,7):
                 for k in range(-2,3):
                     cross_correl_val = 0
                     for reference_ac in reference_acs:
-                        reference_vol_pp1 = cPickle.load(open("no_fractures/" + reference_ac,"rb"),encoding = 'latin1')
-                        reference_vol_pp2 = np.array(reference_vol_pp1)
-                        reference_vol = np.ndarray.flatten(reference_vol_pp2)
-                        reference_dim = np.shape(reference_vol_pp1)
+                        if os.path.isfile("no_fractures/edge_" + reference_ac):
+                            reference_vol_pp1 = cPickle.load(open("no_fractures/edge_" + reference_ac,"rb"),encoding = 'latin1')
+                            reference_vol = np.ndarray.flatten(reference_vol_pp1)
+                            reference_dim = np.shape(reference_vol_pp1)
+                        else:
+                            reference_vol_pp1 = cPickle.load(open("no_fractures/" + reference_ac,"rb"),encoding = 'latin1')
+                            reference_vol_pp2 = np.array(reference_vol_pp1)
+                            
+                            reference_vol_edges = canny_edges_3d(reference_vol_pp2)
+                            reference_vol_edges_blurred = gaussian_filter(np.multiply(reference_vol_edges,50),sigma = std_dev_edges, order = 2)
+                            
+                            cPickle.dump(reference_vol_edges_blurred, open("no_fractures/edge_" + reference_ac,"wb"))
+                            print("no_fractures/edge_" + reference_ac)
+                            
+                            reference_vol = np.ndarray.flatten(reference_vol_edges_blurred)
+                            reference_dim = np.shape(reference_vol_edges_blurred)                       
+                            
                         
-                        
+                       
+                                            
                         x1 = pt[0] - reference_dim[0]//2 + i
                         x2 = x1 + reference_dim[0]
                         
@@ -410,31 +443,46 @@ def GHT(ac_num):
                         z1 = pt[2] - reference_dim[2]//2 + k
                         z2 = z1 + reference_dim[2]
                         
+
+                        #current_vol_pp = np.array(dicom_dwn4x_pp[x1:x2,y1:y2,z1:z2])
+                        current_vol_pp = np.array(query_edges_blurred[x1:x2,y1:y2,z1:z2])
+                        current_vol = np.ndarray.flatten(current_vol_pp)
+ 
+                        query_size = np.shape(current_vol_pp)
+                        
                         #Exit current slide location if out of bounds
                         if x1 < 0 or y1 < 0 or z1 < 0:
                             break
-                        
-                        current_vol_pp = np.array(dicom_dwn4x_pp[x1:x2,y1:y2,z1:z2])
-                        current_vol = np.ndarray.flatten(current_vol_pp)
-                        
+                            
+                        #if x2 > query_size[0] or y2 > query_size[1] or z2 > query_size[3]:
+                            break
+
                         #print("Reference Dim: ",reference_dim)
                         #print("Current Dim: ",np.shape(current_vol_pp))
                         
-                        if x1 < 0:
-                            cross_correl_val = cross_correl_val + np.dot(reference_vol[reference_dim[0]-(x2-x1):reference_dim[0],:,:], current_vol)
-                        else:
-                            cross_correl_val = cross_correl_val + np.dot(reference_vol, current_vol)
+                        #Use normalized values
+                        reference_vol_norm = reference_vol/np.linalg.norm(reference_vol)
+                        current_vol_norm = current_vol/np.linalg.norm(current_vol)
+                        
+                        cross_correl_val = cross_correl_val + abs(np.dot(reference_vol_norm, current_vol_norm))
+                    
+                    heat_map[i+6,j+6,k+2] = cross_correl_val
                         
                     if cross_correl_val > max_cross_correl_val:
                         max_cross_correl_val = cross_correl_val
                         print("The cross correlation value is: ", cross_correl_val)
                         optimal_pt = [pt[0]+i,pt[1]+j, pt[2]+k]
                         print("The optimal point currently is: ", optimal_pt)
+        
+        
+        #Append heat_map
+        heat_maps.append(heat_map)
                     
     print("The Final Detection point is: ",optimal_pt)
     
     print(reference_acs)
-                
+    
+    
                 
     
   
@@ -452,11 +500,25 @@ def GHT(ac_num):
     plt.scatter(nms_y_pts,nms_x_pts, marker='o', color='g')
     plt.scatter(optimal_pt[1],optimal_pt[0], marker='x', color='y')
     
+    
+    #Add plot for heat map
+    for i in range(2):
+        try:
+            print(heat_map[4:10,4:10,3])
+            heat_map = heat_maps[i]
+            heat_map_norm = 256*heat_map/np.max(heat_map)
+            fig.add_subplot(2,4,7+i)
+            plt.title('Heat Map')
+            plt.imshow(heat_map_norm[:,:,3])
+        except:
+            pass
+    
     plt.show()
     
     #Save Figure
     #plt.savefig(ac_num + "_sigma" + str(std_dev) + ".png")
-
+    
+    return optimal_pt
     
 
 if __name__ == '__main__':
@@ -471,9 +533,24 @@ if __name__ == '__main__':
         
         ac_nums.append(str2)
 
+    #For validation set of first 20
+    #4687879, 5056218, 5199556, 5235783, 5372580
+    ground_truth = {4687879:[35,34,19],5056218:[36,48,19],5199556:[45,54,15],5235783:[41,55,19],5372580:[31,50,19]}
+    
     #Get the detection results for the given accession number(s)
-    for ac_num in ac_nums[0:1]:
+    error = 0
+    i = 0
+    #print(ac_nums)
+    
+    for ac_num in ac_nums[9:10]:
         print(ac_num)
-        GHT(ac_num)
+        optimal_pt = GHT(ac_num)
+        print("Detected Optimal Point: ", optimal_pt)
+        #print("Ground Truth Point: ", ground_truth[int(ac_num)])
+        
+        #error = error + abs(np.linalg.norm(np.subtract(optimal_pt,ground_truth[int(ac_num)])))**2 #use least squares error
+        i = i + 1
+    
+    #print("The squared error for this trial on the validation set is :", error)
     
     
