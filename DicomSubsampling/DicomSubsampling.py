@@ -111,7 +111,7 @@ def volumeOfInterest(sample):
     
     
     #Frontal
-    fig = plt.figure()
+    fig = plt.figure(figsize = (24,8))
     plt.gray()
 
     for i in range(1,6):    
@@ -119,7 +119,7 @@ def volumeOfInterest(sample):
         plt.imshow(sample[:,:,int(sample_dim[2]/6*i)])
     
     #Side 
-    fig2 = plt.figure()
+    fig2 = plt.figure(figsize = (20,10))
     plt.gray()
 
     for i in range(1,6):    
@@ -161,11 +161,11 @@ def generate_pkl(series_path, ac_num, save_orig=False):
 
 
 if __name__ == '__main__':
-    #os.chdir("C:\\Users\\yoons\\Documents\\4th Year Semester 1\\ESC499 - Thesis\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
+    os.chdir("C:\\Users\\yoons\\Documents\\4th Year Semester 1\\ESC499 - Thesis\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
 
     #Set create_pkl to true if we are interested in creating pkl files from scratch
     create_pkl = False #If we want to create a downsized pkl
-    create_pkl_from_scratch= True #If we want to do this from raw .dcm files or from a pre-existing full-sized pkl
+    create_pkl_from_scratch= False #If we want to do this from raw .dcm files or from a pre-existing full-sized pkl
     vol_of_interest = True #If we want to create a sample.pkl
     plot_downsized = False #If we want to plot the downsized 4x volume
 
@@ -230,7 +230,13 @@ if __name__ == '__main__':
     #Getting Sample Image for 3D GHT
     if vol_of_interest:
 
-        ac_num = "8931305"
+        ac_num = "7796800"
+        x1 = 10
+        x2 = 47
+        y1 = 42
+        y2 = 66
+        z1 = 8
+        z2 = 25
 
         try:
             downsized_dicom = cPickle.load(open("no_fractures/dicom_3d_" + ac_num + "_dwn4x.pkl", "rb"))
@@ -238,9 +244,9 @@ if __name__ == '__main__':
             downsized_dicom = cPickle.load(open("no_fractures/dicom_3d_" + ac_num + "_dwn4x.pkl","rb"),encoding = 'latin1')
 
         #Get volume of interest
-        sample = volumeOfInterest(downsized_dicom[24:56,46:70,13:37])
+        sample = volumeOfInterest(downsized_dicom[x1:x2,y1:y2,z1:z2])
     
-        cPickle.dump(sample, open("no_fractures/dicom_3d_" + ac_num + "_sample.pkl", "wb"))
+        cPickle.dump(sample, open("no_fractures/dicom_3d_" + ac_num + "_reference.pkl", "wb"))
         
 
 
@@ -249,7 +255,7 @@ if __name__ == '__main__':
     #Getting the plot of necessary 
     if plot_downsized:
     
-        ac_num = "6729799"
+        ac_num = "5056218"
         
         try:
             dicom_plot = cPickle.load(open("no_fractures/dicom_3d_" + ac_num + "_dwn4x.pkl", "rb"))
