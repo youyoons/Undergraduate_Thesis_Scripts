@@ -49,9 +49,6 @@ def create_3d_dicom(series_path):
     for file_name in dicom_files:
         ds = pydicom.dcmread(series_path + file_name)
     
-        #shape = ds.pixel_array.shape
-        #print(shape)
-    
         image_2d = ds.pixel_array.astype(float)
         image_2d_scaled = (np.maximum(image_2d,0) / image_2d.max()) * 255.0
     
@@ -62,7 +59,6 @@ def create_3d_dicom(series_path):
         slice_num += 1
     
     print(dicom_3d.shape)
-    #print(dicom_3d[100,100,30])
     
     return dicom_3d
 
@@ -98,17 +94,8 @@ def downsize_2x(dicom_3d,narrow_3rd=True):
 '''
 Function: get a dicom image and select a volume of interest
 '''
-def volumeOfInterest(sample):
-    #c12 = np.zeros((30,30,50))
-    
-    #9183761
-    #sample = dicom[8:44,40:65,19:32]
-    
-    #9128577
-    #sample = dicom[12:50,36:64,18:26]
-    
-    sample_dim = np.shape(sample)
-    
+def volumeOfInterest(reference):
+    reference_dim = np.shape(reference)
     
     #Frontal
     fig = plt.figure(figsize = (24,8))
@@ -116,7 +103,7 @@ def volumeOfInterest(sample):
 
     for i in range(1,6):    
         fig.add_subplot(1,5,i)
-        plt.imshow(sample[:,:,int(sample_dim[2]/6*i)])
+        plt.imshow(reference[:,:,int(reference_dim[2]/6*i)])
     
     #Side 
     fig2 = plt.figure(figsize = (20,10))
@@ -124,25 +111,33 @@ def volumeOfInterest(sample):
 
     for i in range(1,6):    
         fig2.add_subplot(1,5,i)
-        plt.imshow(sample[:,int(sample_dim[1]/6*i),:])
+        plt.imshow(reference[:,int(reference_dim[1]/6*i),:])
     
     plt.show()
     
-    return sample
+    return reference
 
-def generate_pkl(series_path, ac_num, save_orig=False):
-    raw_dicom_3d = create_3d_dicom(series_path)
+#Set save_orig to True if you want to save original full-sized DICOM file
+def generate_pkl(series_path, ac_num, save_orig=False, from_scratch=True):
+    if from_scratch:
+        raw_dicom_3d = create_3d_dicom(series_path)
+    else:
+        try:
+            raw_dicom_3d = cPickle.load(open("no_fractures/dicom_3d_" + ac_num + ".pkl", "rb"))
+        except:
+            raw_dicom_3d = cPickle.load(open("no_fractures/dicom_3d_" + ac_num + ".pkl","rb"),encoding = 'latin1')
     
     if save_orig:
         cPickle.dump(raw_dicom_3d, open("no_fractures/dicom_3d_" + ac_num + ".pkl", "wb"))
     
     raw_dicom_3d_dim = np.shape(raw_dicom_3d)    
 
+    #Remove first slice as it generally contains noisy, non-sensical data
     dicom_3d = raw_dicom_3d[:,:,1:((raw_dicom_3d_dim[2]-1)//4)*4+1]
     dicom_3d_dim = np.shape(dicom_3d)
-    print("Dimensions of Processed DICOM: ", dicom_3d_dim)
+    print("Dimensions of Full-Sized DICOM: ", dicom_3d_dim)
     
-    #True to downsize the z axis
+    #True to downsize the z axis by 2x
     dicom_3d_downsized = downsize_2x(dicom_3d,True)
     
     #Look at z axis length to see whether to narrow z-axis by 4x
@@ -152,7 +147,7 @@ def generate_pkl(series_path, ac_num, save_orig=False):
         dicom_3d_4x_downsized = downsize_2x(dicom_3d_downsized,False)
     
     dicom_3d_4x_dim = np.shape(dicom_3d_4x_downsized)
-    print("Dimension of Downsized DICOM: ", dicom_3d_4x_dim)
+    print("Dimension of Down-Sized DICOM: ", dicom_3d_4x_dim)
     
     #Save the final downsized image as pkl file
     cPickle.dump(dicom_3d_4x_downsized, open("no_fractures/dicom_3d_" + ac_num + "_dwn4x.pkl","wb"))
@@ -161,18 +156,22 @@ def generate_pkl(series_path, ac_num, save_orig=False):
 
 
 if __name__ == '__main__':
-    os.chdir("C:\\Users\\yoons\\Documents\\4th Year Semester 1\\ESC499 - Thesis\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
+    os.chdir("C:\\Users\\yoons\\Documents\\4th Year Semester 2\\ESC499 - Thesis\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
 
     #Set create_pkl to true if we are interested in creating pkl files from scratch
     create_pkl = False #If we want to create a downsized pkl
     create_pkl_from_scratch= False #If we want to do this from raw .dcm files or from a pre-existing full-sized pkl
-    vol_of_interest = True #If we want to create a sample.pkl
+    vol_of_interest = True #If we want to create a reference.pkl
     plot_downsized = False #If we want to plot the downsized 4x volume
 
+
+    #Want to create downsized pickle object file
     if create_pkl:
         if create_pkl_from_scratch:
             base_series_path = "/home/youy/Documents/Spine/ProcessedData_y/"
-        
+            
+            print("***CONVERT FULL-SIZED DICOM (.DCM) TO SUBSAMPLED DICOM PKL***")
+            
             #Get all series that are processed
             series_paths = glob(base_series_path + "/*/*/")
             
@@ -180,73 +179,53 @@ if __name__ == '__main__':
             for series_path in series_paths:
                 path_one_level_up = os.path.dirname(os.path.dirname(series_path))
                 ac_num = path_one_level_up.split("/")[-1]
-
+                
+                #Only create pkl file if it does not exist
                 if os.path.isfile("no_fractures/dicom_3d_" + ac_num + "_dwn4x.pkl") == False:
                     print("ACCESSION NUMBER: ",ac_num)
-                    generate_pkl(series_path, ac_num, False)
+                    generate_pkl(series_path, ac_num, False, True)
                 
-    
-        #This is used when we want to make a pre-existing full sized pkl to a downsized one
+        #This is used when we want to make a pre-existing full sized pkl to a downsized one (edge case)
         else:
             ac_num = "9128577"
+            print("***CONVERT FULL-SIZED DICOM PKL TO SUBSAMPLED DICOM PKL***")
             print("ACCESSION NUMBER: ", ac_num)
-    
-            try:
-                dicom_3d_pre1 = cPickle.load(open("no_fractures/dicom_3d_" + ac_num + ".pkl", "rb"))
-            except:
-                dicom_3d_pre1 = cPickle.load(open("no_fractures/dicom_3d_" + ac_num + ".pkl","rb"),encoding = 'latin1')
-                
-        
-            dicom_3d_pre1_dim = np.shape(dicom_3d_pre1)
-            print("Dimensions of Raw DICOM: ", dicom_3d_pre1_dim)
-    
-            #Need to make sure the z-axis length is divisible by 4
-            dicom_3d_pre = dicom_3d_pre1[:,:,1:dicom_3d_pre1_dim[2]-1]
-            dicom_3d_pre_dim = np.shape(dicom_3d_pre)
-        
-            dicom_3d = dicom_3d_pre[:,:,0:((dicom_3d_pre_dim[2])//4)*4]
-        
-            dicom_3d_dim = np.shape(dicom_3d)
-            print("Dimensions of Processed DICOM: ", dicom_3d_dim)
             
-            #True to downsize the z axis
-            dicom_3d_downsized = downsize_2x(dicom_3d,True)
-        
-            #Look at z axis length to see whether to narrow z-axis by 4x
-            if dicom_3d_dim[2] > 150:
-                dicom_3d_4x_downsized = downsize_2x(dicom_3d_downsized,True)
-            else:
-                dicom_3d_4x_downsized = downsize_2x(dicom_3d_downsized,False)
-        
-            dicom_3d_4x_dim = np.shape(dicom_3d_4x_downsized)
-            print("Dimension of Downsized DICOM: ", dicom_3d_4x_dim)
-            
-            #Save the final downsized image
-            cPickle.dump(dicom_3d_4x_downsized, open("no_fractures/dicom_3d_" + ac_num + "_dwn4x.pkl","wb"))
-  
+            #No series path needed, ac_num provided by user, no save_orig, not from_scratch
+            generate_pkl(None, ac_num, False, False)
+                    
+ 
 
     
 #===================================================================================================
-    #Getting Sample Image for 3D GHT
+    #Getting Reference Image for 3D GHT
     if vol_of_interest:
 
-        ac_num = "7796800"
-        x1 = 10
-        x2 = 47
-        y1 = 42
-        y2 = 66
-        z1 = 8
-        z2 = 25
-
+        ac_num = "4687879"
+        x = 37 
+        y = 30
+        z = 19
+        x1 = x - 18
+        x2 = x + 18
+        y1 = y - 12
+        y2 = y + 12
+        z1 = z - 9
+        z2 = z + 9
+        
         try:
-            downsized_dicom = cPickle.load(open("no_fractures/dicom_3d_" + ac_num + "_dwn4x.pkl", "rb"))
-        except:
-            downsized_dicom = cPickle.load(open("no_fractures/dicom_3d_" + ac_num + "_dwn4x.pkl","rb"),encoding = 'latin1')
-
-        #Get volume of interest
-        sample = volumeOfInterest(downsized_dicom[x1:x2,y1:y2,z1:z2])
+            
+            try:
+                downsized_dicom = cPickle.load(open("no_fractures/dicom_3d_" + ac_num + "_dwn4x.pkl", "rb"))
+            except:
+                downsized_dicom = cPickle.load(open("no_fractures/dicom_3d_" + ac_num + "_dwn4x.pkl","rb"),encoding = 'latin1')
     
-        cPickle.dump(sample, open("no_fractures/dicom_3d_" + ac_num + "_reference.pkl", "wb"))
+            #Get volume of interest
+            reference = volumeOfInterest(downsized_dicom[x1:x2,y1:y2,z1:z2])
+        
+            #cPickle.dump(reference, open("no_fractures/dicom_3d_" + ac_num + "_reference.pkl", "wb"))
+        
+        except:
+            print("Cannot find " + ac_num)
         
 
 
@@ -286,37 +265,5 @@ if __name__ == '__main__':
         
         plt.show() 
         
- 
- 
-'''
-    #Testing to print values
-    fig = plt.figure()
-    plt.gray()
-    fig.add_subplot(3,2,1)
-    plt.title('Full Size - Beginning')
-    plt.imshow(dicom_3d[:,:,0])
-    
-    fig.add_subplot(3,2,2)
-    plt.title('Full Size - Middle')
-    plt.imshow(dicom_3d[:,:,50])
-    
-    fig.add_subplot(3,2,3)
-    plt.title('Downsized 2x - Beginning')
-    plt.imshow(dicom_3d_downsized[:,:,0])
-    
-    fig.add_subplot(3,2,4)
-    plt.title('Downsized 2x - Middle')
-    plt.imshow(dicom_3d_downsized[:,:,50])
-    
-    fig.add_subplot(3,2,5)
-    plt.title('Downsized 4x - Beginning')
-    plt.imshow(dicom_3d_4x_downsized[:,:,0])
-    
-    fig.add_subplot(3,2,6)
-    plt.title('Downsized 4x - Middle')
-    plt.imshow(dicom_3d_4x_downsized[:,:,25])
-    
-    plt.show()
-'''
 
 
