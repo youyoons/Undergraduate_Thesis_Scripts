@@ -445,7 +445,7 @@ def GHT(ac_num):
             heat_map_norm = heat_map
             fig.add_subplot(2,4,7+i)
             plt.title('Heat Map')
-            plt.imshow(heat_map_norm[:,:,3])
+            plt.imshow(heat_map_norm[:,:,1])
         except:
             pass
     
