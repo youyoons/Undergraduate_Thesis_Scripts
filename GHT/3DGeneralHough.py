@@ -44,19 +44,13 @@ def build_r_table(image, origin):
     
     dx = sobel(image, 0)  # x derivative
     dy = sobel(image, 1)  # y derivative
-    dz = sobel(image, 2)  # z derivativeF
+    dz = sobel(image, 2)  # z derivative
     
     mag = np.sqrt(dx*dx + dy*dy + dz*dz)
     mag_norm = mag/np.max(mag)
     
-    
-    #print(dx[0,0,0], dy[0,0,0], dz[0,0,0], mag_norm[0,0,0])
-    
-    #print("dx,dy,dz: ", dx.shape,dy.shape,dz.shape)
-    
     #Creating edge array the same size as query image
     edges = np.zeros(image.shape, dtype=bool)
-    #print("Edge: ", edges.shape)
     
     for i in range(edges.shape[0]):
         for j in range(edges.shape[1]):
@@ -64,8 +58,6 @@ def build_r_table(image, origin):
                 if mag_norm[i,j,k] > 0.3 :# and mag_norm[i,j,k] < 0.9:
                     edges[i,j,k] = True
     
-
-
 
     #Takes (47,40) Edges and calculates the gradients using sobel
     phi, psi = gradient_orientation(edges)
@@ -175,15 +167,14 @@ def test_general_hough(gh, reference_image, query):
 
     return accumulator
 
-'''
-Function: GHT
-Input: ac_num (an array of accession numbers)
-Purpose: detects C1, C2 vertebrae and displays at both as points and plots
-'''
+
 #===================================================================================================
 #****************************************** START OF GHT *******************************************
 #===================================================================================================
 def GHT(ac_num):
+#===================================================================================================
+#Obtaining the list of references to use and bounding the Region of Interest
+#===================================================================================================
     #Get the references that will be used for Cervical Spine Vertebrae Detection
     reference_acs = []
 
@@ -202,7 +193,7 @@ def GHT(ac_num):
     dicom_dwn4x_pp_dim = np.shape(dicom_dwn4x_pp)
     print("Size of Downsized Dicom Input: ", dicom_dwn4x_pp_dim)
 
-    #Specify Prior Limits to Volume
+    #Specify Region of Interest
     x1 = 5
     x2 = 65
     y1 = 15
@@ -213,18 +204,11 @@ def GHT(ac_num):
     dicom_dwn4x = dicom_dwn4x_pp[x1:x2,y1:y2,:] #dicom_dwn4x contains the specific region of focus
     dicom_dwn4x_dim = np.shape(dicom_dwn4x)
     print("Size of Relevant Dicom (Prior Info): ", dicom_dwn4x_dim)
+   
 
-    '''
-    neg = 0
-    for i in range(dicom_dwn4x_dim[0]):
-        for j in range(dicom_dwn4x_dim[1]):
-            for k in range(dicom_dwn4x_dim[2]):
-                if dicom_dwn4x[i,j,k] < 0:
-                    neg = neg + 1
-
-    print("Number of negative pixels is: ", neg)
-    '''
-    
+#===================================================================================================
+#Obtain Final Accumulator Matrix through Max-Pooling of Individual Accumulator Matrices
+#===================================================================================================
     #Initialize Accumulator that will be used to get top points
     accumulator = np.zeros(dicom_dwn4x_dim)
     
@@ -246,6 +230,8 @@ def GHT(ac_num):
     
     
 #===================================================================================================
+#Blurring the Accumulator Matrix and Query Edge Image
+#===================================================================================================
     #Blur the final accumulator matrix
     std_dev = 1.0
     final_accumulator = gaussian_filter(final_accumulator,sigma = std_dev, order = 0)
@@ -258,6 +244,7 @@ def GHT(ac_num):
     
     query_edges_blurred = gaussian_filter(np.multiply(query_edges,1),sigma = std_dev_edges, order = 0)
 
+    #Sanity Check regarding number of negative edges
     neg = 0
     for i in range(query_edges_dim[0]):
         for j in range(query_edges_dim[1]):
@@ -265,9 +252,11 @@ def GHT(ac_num):
                 if query_edges_blurred[i,j,k] < 0:
                     neg = neg + 1
                     
-    print("Negative for edge: ", neg)
+    print("Number of Negative Edges: ", neg)
 
 
+#===================================================================================================
+#Initial Plots and Top 40 Points for Visualization Purposes
 #===================================================================================================
     #Plot up to top 40 points
     fig = plt.figure(num = ac_num + "_sigma" + str(std_dev), figsize = (24,12))
@@ -317,6 +306,8 @@ def GHT(ac_num):
 
 
 #===================================================================================================
+#Non-maximal suppression
+#===================================================================================================
     #Plot NMS points
     fig.add_subplot(2,4,6)
     plt.title('Non-Maximal Suppression and Optimal Points')
@@ -344,23 +335,13 @@ def GHT(ac_num):
   
 
 #===================================================================================================
+#Normalized Cross Correlation and Heat Map Generation
+#===================================================================================================
     #Sliding reference across volume around detected points to find accurate point
     optimal_pt = [0,0]
     max_cross_correl_val = -float('inf')
     
     heat_maps = []
-    '''
-    test1 = cPickle.load(open("no_fractures/edge_dicom_3d_8931305_reference.pkl","rb"),encoding = 'latin1')
-    test2 = cPickle.load(open("no_fractures/edge_dicom_3d_8649024_reference.pkl","rb"),encoding = 'latin1')
-    test1_flat = np.ndarray.flatten(test1)
-    test1_norm = test1_flat/np.linalg.norm(test1_flat)
-    
-    test2_flat = np.ndarray.flatten(test2)
-    test2_norm = test2_flat/np.linalg.norm(test2_flat)
-    
-    print("Print Result")
-    print(np.dot(test1_norm,test2_norm))
-    '''
     
     print("References ACs: ", reference_acs)
     
@@ -403,8 +384,6 @@ def GHT(ac_num):
                         z1 = pt[2] - reference_dim[2]//2 + k
                         z2 = z1 + reference_dim[2]
                         
-
-                        #query_vol_pp = np.array(dicom_dwn4x_pp[x1:x2,y1:y2,z1:z2])
                         #Use the Canny edge version of the query image for cross correlation
                         query_vol_pp = np.array(query_edges_blurred[x1:x2,y1:y2,z1:z2])
                         query_vol = np.ndarray.flatten(query_vol_pp)
@@ -442,11 +421,9 @@ def GHT(ac_num):
     
     print(reference_acs)
     
-    
-                
-    
+
   
-    #Plot non-maximal suppression pointsi
+    #Plot non-maximal suppression points
     nms_x_pts = [] 
     nms_y_pts = []
     nms_z_pts = []
@@ -464,9 +441,7 @@ def GHT(ac_num):
     #Add plot for heat map
     for i in range(2):
         try:
-            #print(heat_map[4:10,4:10,3])
             heat_map = heat_maps[i]
-            #heat_map_norm = 256*heat_map/np.max(heat_map)
             heat_map_norm = heat_map
             fig.add_subplot(2,4,7+i)
             plt.title('Heat Map')
@@ -480,7 +455,11 @@ def GHT(ac_num):
     #plt.savefig(ac_num + "_sigma" + str(std_dev) + ".png")
     
     return optimal_pt
-    
+
+#===================================================================================================
+#******************************************* END OF GHT ********************************************
+#===================================================================================================
+
 
 if __name__ == '__main__':
     os.chdir("C:\\Users\\yoons\\Documents\\4th Year Semester 2\\ESC499 - Thesis\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
