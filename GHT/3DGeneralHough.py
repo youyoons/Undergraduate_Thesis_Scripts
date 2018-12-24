@@ -39,7 +39,7 @@ def gradient_orientation(image):
 
 def build_r_table(image, origin):
     '''
-    Build the R-table from the given shape image and a reference point
+    Build the R-table from the given shape image and a referenc point
     '''
     
     dx = sobel(image, 0)  # x derivative
@@ -343,11 +343,8 @@ def GHT(ac_num):
     
     heat_maps = []
     
-    print("References ACs: ", reference_acs)
-    
     #Generate the edge references if they do not exist in the directory "no_Fractures"
     for reference_ac in reference_acs:
-        print(reference_ac)
         if not os.path.isfile("no_fractures/edge_" + reference_ac):
             reference_vol_pp1 = cPickle.load(open("no_fractures/" + reference_ac,"rb"),encoding = 'latin1')
             reference_vol_pp2 = np.array(reference_vol_pp1)
@@ -418,9 +415,6 @@ def GHT(ac_num):
         heat_maps.append(heat_map)
                     
     print("The Final Detection point is: ",optimal_pt)
-    
-    print(reference_acs)
-    
 
   
     #Plot non-maximal suppression points
