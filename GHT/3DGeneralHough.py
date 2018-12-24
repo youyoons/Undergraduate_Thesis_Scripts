@@ -79,28 +79,6 @@ def build_r_table(image, origin):
     
     return r_table
 
-
-def sobel_edges_3d(grayImage):
-    dx = sobel(grayImage, 0)  # x derivative
-    dy = sobel(grayImage, 1)  # y derivative
-    dz = sobel(grayImage, 2)  # z derivative
-    
-    
-    #Get magnitude of gradient
-    mag = np.sqrt(dx*dx + dy*dy + dz*dz)
-    mag_norm = mag/np.max(mag)
-    
-    #Creating edge array the same size as query image
-    edges = np.zeros(grayImage.shape, dtype=bool)
-    
-    for i in range(edges.shape[0]):
-        for j in range(edges.shape[1]):
-            for k in range(edges.shape[2]):
-                if mag_norm[i,j,k] > 0.4 :# and mag_norm[i,j,k] < 0.9:
-                    edges[i,j,k] = True      
-    
-    return edges
-
 def canny_edges_3d(grayImage):
     MIN_CANNY_THRESHOLD = 60
     MAX_CANNY_THRESHOLD = 150
@@ -138,9 +116,8 @@ def accumulate_gradients(r_table, grayImage):
     Perform a General Hough Transform with the given image and R-table
     '''
     
-    #Choose Edge Detector as desired
+    #Get edges matrix from Canny 
     edges = canny_edges_3d(grayImage) 
-    #edges = sobel_edges_3d(grayImage)
     
     phi, psi = gradient_orientation(edges)
     
@@ -203,17 +180,21 @@ Function: GHT
 Input: ac_num (an array of accession numbers)
 Purpose: detects C1, C2 vertebrae and displays at both as points and plots
 '''
+#===================================================================================================
+#****************************************** START OF GHT *******************************************
+#===================================================================================================
 def GHT(ac_num):
-    #reference_acs = ["dicom_3d_8214092_reference.pkl"]
+    #Get the references that will be used for Cervical Spine Vertebrae Detection
     reference_acs = []
 
-    #Get the references that will be used
     for file_name in os.listdir("no_fractures"):
+        #The name should have "reference" in it but no "edge" in it
         if file_name.find("reference.pkl") != -1 and file_name.find("edge") == -1:
+            #The reference list should not include the reference from the current ac_num
             if file_name.find(str(ac_num)) == -1:
                 reference_acs.append(file_name)
     
-    print("ACCESSION NUMBER: ", ac_num)
+    print("This is the 3D GHT for Accession Number: ", ac_num)
     
     
     #Open Downsized Pickle File Containing DICOM Scan
@@ -228,12 +209,22 @@ def GHT(ac_num):
     y2 = 80
 
     
-    #Get specific region of focus (based on prior information
-    dicom_dwn4x = dicom_dwn4x_pp[x1:x2,y1:y2,:]
+    #Get specific region of focus (based on prior information)
+    dicom_dwn4x = dicom_dwn4x_pp[x1:x2,y1:y2,:] #dicom_dwn4x contains the specific region of focus
     dicom_dwn4x_dim = np.shape(dicom_dwn4x)
-    print("Size of Specific Dicom: ", dicom_dwn4x_dim)
+    print("Size of Relevant Dicom (Prior Info): ", dicom_dwn4x_dim)
 
+    '''
+    neg = 0
+    for i in range(dicom_dwn4x_dim[0]):
+        for j in range(dicom_dwn4x_dim[1]):
+            for k in range(dicom_dwn4x_dim[2]):
+                if dicom_dwn4x[i,j,k] < 0:
+                    neg = neg + 1
 
+    print("Number of negative pixels is: ", neg)
+    '''
+    
     #Initialize Accumulator that will be used to get top points
     accumulator = np.zeros(dicom_dwn4x_dim)
     
@@ -248,19 +239,37 @@ def GHT(ac_num):
     
         detect_s = general_hough_closure(reference)
     
-        #Get elementwise maximum of accumulator matrix when compared to new reference
+        #Use max pooling on accumulator matrix
         accumulator = np.maximum(accumulator,test_general_hough(detect_s, reference, dicom_dwn4x))
     
     final_accumulator = accumulator
     
     
+#===================================================================================================
+    #Blur the final accumulator matrix
     std_dev = 1.0
     final_accumulator = gaussian_filter(final_accumulator,sigma = std_dev, order = 0)
 
-    std_dev_edges = 0.2
+    #Blur the edge image for the whole dw4x
+    std_dev_edges = 0.0
     query_edges = canny_edges_3d(dicom_dwn4x_pp)
-    query_edges_blurred = gaussian_filter(np.multiply(query_edges,50),sigma = std_dev_edges, order = 0)
+    
+    query_edges_dim = np.shape(query_edges)
+    
+    query_edges_blurred = gaussian_filter(np.multiply(query_edges,1),sigma = std_dev_edges, order = 0)
 
+    neg = 0
+    for i in range(query_edges_dim[0]):
+        for j in range(query_edges_dim[1]):
+            for k in range(query_edges_dim[2]):
+                if query_edges_blurred[i,j,k] < 0:
+                    neg = neg + 1
+                    
+    print("Negative for edge: ", neg)
+
+
+#===================================================================================================
+    #Plot up to top 40 points
     fig = plt.figure(num = ac_num + "_sigma" + str(std_dev), figsize = (24,12))
     plt.gray()
 
@@ -269,7 +278,6 @@ def GHT(ac_num):
     fig.add_subplot(2,4,1)
     plt.title('Query Image')
     plt.imshow(dicom_dwn4x_pp[:,:,dicom_dwn4x_pp_dim[2]//2])
-    #plt.imshow(query_edges[:,:,dicom_dwn4x_pp_dim[2]//2])
     
     fig.add_subplot(2,4,2)
     plt.title('Query Image Edges')
@@ -280,13 +288,13 @@ def GHT(ac_num):
     plt.imshow(query_edges_blurred[:,:,dicom_dwn4x_pp_dim[2]//2])
     
     fig.add_subplot(2,4,4)
-    plt.title('Accumulator')
+    plt.title('Final Accumulator')
     plt.imshow(final_accumulator[:,:,dicom_dwn4x_dim[2]//2])
      
     fig.add_subplot(2,4,5)
     plt.title('Detection of Top 40 Points')
     plt.imshow(dicom_dwn4x_pp[:,:,dicom_dwn4x_dim[2]//2])
-    #plt.imshow(query_edges[:,:,dicom_dwn4x_dim[2]//2])
+
 
     #Get top 40 results that can be filtered out
     m = n_max(final_accumulator, 40)
@@ -295,8 +303,6 @@ def GHT(ac_num):
     x_pts = [] 
     y_pts = []
     z_pts = []
-    
-    #highest_prob = m[0][0]
     
     for pt in m:
         points.append((pt[1][0] + x1,pt[1][1] + y1,pt[1][2], int(pt[0])))
@@ -310,12 +316,11 @@ def GHT(ac_num):
     print ("Top 40 Most Likely Points (x,y,z,certainty): ", points)
 
 
-
+#===================================================================================================
+    #Plot NMS points
     fig.add_subplot(2,4,6)
     plt.title('Non-Maximal Suppression and Optimal Points')
     plt.imshow(dicom_dwn4x_pp[:,:,dicom_dwn4x_pp_dim[2]//2])
-
-
 
     #Perform non-maximal suppression
     nms_pts = []
@@ -334,50 +339,61 @@ def GHT(ac_num):
             
             if counter == len(nms_pts):
                 nms_pts.append(pt)
-  
         
     print("Non-Maximal Suppression Points: ", nms_pts)
   
-  
+
+#===================================================================================================
     #Sliding reference across volume around detected points to find accurate point
-    
     optimal_pt = [0,0]
     max_cross_correl_val = -float('inf')
     
     heat_maps = []
+    '''
+    test1 = cPickle.load(open("no_fractures/edge_dicom_3d_8931305_reference.pkl","rb"),encoding = 'latin1')
+    test2 = cPickle.load(open("no_fractures/edge_dicom_3d_8649024_reference.pkl","rb"),encoding = 'latin1')
+    test1_flat = np.ndarray.flatten(test1)
+    test1_norm = test1_flat/np.linalg.norm(test1_flat)
     
+    test2_flat = np.ndarray.flatten(test2)
+    test2_norm = test2_flat/np.linalg.norm(test2_flat)
+    
+    print("Print Result")
+    print(np.dot(test1_norm,test2_norm))
+    '''
     
     print("References ACs: ", reference_acs)
+    
+    #Generate the edge references if they do not exist in the directory "no_Fractures"
+    for reference_ac in reference_acs:
+        print(reference_ac)
+        if not os.path.isfile("no_fractures/edge_" + reference_ac):
+            reference_vol_pp1 = cPickle.load(open("no_fractures/" + reference_ac,"rb"),encoding = 'latin1')
+            reference_vol_pp2 = np.array(reference_vol_pp1)
+            
+            reference_vol_edges = canny_edges_3d(reference_vol_pp2)
+            reference_vol_edges_blurred = gaussian_filter(np.multiply(reference_vol_edges,1),sigma = std_dev_edges, order = 0)
+            
+            cPickle.dump(reference_vol_edges_blurred, open("no_fractures/edge_" + reference_ac,"wb"))
+            #print("no_fractures/edge_" + reference_ac)
+            
     
     for pt in nms_pts:
         heat_map = np.zeros((13,13,5))
         print("The point being investigated is: ", pt)
-        #print("The detected reference dim is: ", detected_reference_dim)
-        for i in range(-6,7):
-            for j in range(-6,7):
-                for k in range(-2,3):
+
+        for i in range(-4,5):
+            for j in range(-4,5):
+                for k in range(-1,2):
                     cross_correl_val = 0
-                    for reference_ac in reference_acs[0:1]:
-                        if os.path.isfile("no_fractures/edge_" + reference_ac):
-                            reference_vol_pp1 = cPickle.load(open("no_fractures/edge_" + reference_ac,"rb"),encoding = 'latin1')
-                            reference_vol = np.ndarray.flatten(reference_vol_pp1)
-                            reference_dim = np.shape(reference_vol_pp1)
-                        else:
-                            reference_vol_pp1 = cPickle.load(open("no_fractures/" + reference_ac,"rb"),encoding = 'latin1')
-                            reference_vol_pp2 = np.array(reference_vol_pp1)
-                            
-                            reference_vol_edges = canny_edges_3d(reference_vol_pp2)
-                            reference_vol_edges_blurred = gaussian_filter(np.multiply(reference_vol_edges,50),sigma = std_dev_edges, order = 2)
-                            
-                            cPickle.dump(reference_vol_edges_blurred, open("no_fractures/edge_" + reference_ac,"wb"))
-                            print("no_fractures/edge_" + reference_ac)
-                            
-                            reference_vol = np.ndarray.flatten(reference_vol_edges_blurred)
-                            reference_dim = np.shape(reference_vol_edges_blurred)                       
-                            
+                    
+                    for reference_ac in reference_acs:
+                        reference_vol_pp = cPickle.load(open("no_fractures/edge_" + reference_ac,"rb"),encoding = 'latin1')
+                        #reference_dim is the dimension of the edge reference
+                        reference_dim = np.shape(reference_vol_pp)
+                        reference_vol = np.ndarray.flatten(reference_vol_pp)
                         
-                       
-                                            
+                        #Get bounds to compare on the query image
                         x1 = pt[0] - reference_dim[0]//2 + i
                         x2 = x1 + reference_dim[0]
                         
@@ -388,34 +404,35 @@ def GHT(ac_num):
                         z2 = z1 + reference_dim[2]
                         
 
-                        #current_vol_pp = np.array(dicom_dwn4x_pp[x1:x2,y1:y2,z1:z2])
-                        current_vol_pp = np.array(query_edges_blurred[x1:x2,y1:y2,z1:z2])
-                        current_vol = np.ndarray.flatten(current_vol_pp)
+                        #query_vol_pp = np.array(dicom_dwn4x_pp[x1:x2,y1:y2,z1:z2])
+                        #Use the Canny edge version of the query image for cross correlation
+                        query_vol_pp = np.array(query_edges_blurred[x1:x2,y1:y2,z1:z2])
+                        query_vol = np.ndarray.flatten(query_vol_pp)
  
-                        query_size = np.shape(current_vol_pp)
+                        query_dim = np.shape(query_vol_pp)
                         
                         #Exit current slide location if out of bounds
                         if x1 < 0 or y1 < 0 or z1 < 0:
                             break
-                            
-                        if x2 > query_size[0] or y2 > query_size[1] or z2 > query_size[3]:
-                            break
 
 
-                        
-                        #Use normalized values
+                        #Use norms to normalize the vectors for cross-correlation
                         reference_vol_norm = reference_vol/np.linalg.norm(reference_vol)
-                        current_vol_norm = current_vol/np.linalg.norm(current_vol)
+                        query_vol_norm = query_vol/np.linalg.norm(query_vol)
                         
-                        cross_correl_val = cross_correl_val + abs(np.dot(reference_vol_norm, current_vol_norm))
+                        
+                        if (np.dot(reference_vol_norm, query_vol_norm)) < 0:
+                            print("ALERT ALERT ALERT")
+                        
+                        cross_correl_val = cross_correl_val + np.dot(reference_vol_norm, query_vol_norm)
                     
                     heat_map[i+6,j+6,k+2] = cross_correl_val
-                        
                     if cross_correl_val > max_cross_correl_val:
+                        #print(max_cross_correl_val)
                         max_cross_correl_val = cross_correl_val
-                        print("The cross correlation value is: ", cross_correl_val)
+                        #print("The cross correlation value is: ", cross_correl_val)
                         optimal_pt = [pt[0]+i,pt[1]+j, pt[2]+k]
-                        print("The optimal point currently is: ", optimal_pt)
+                        #print("The optimal point currently is: ", optimal_pt)
         
         
         #Append heat_map
@@ -429,7 +446,7 @@ def GHT(ac_num):
                 
     
   
-    #Plot non-maximal suppression points
+    #Plot non-maximal suppression pointsi
     nms_x_pts = [] 
     nms_y_pts = []
     nms_z_pts = []
@@ -449,7 +466,8 @@ def GHT(ac_num):
         try:
             #print(heat_map[4:10,4:10,3])
             heat_map = heat_maps[i]
-            heat_map_norm = 256*heat_map/np.max(heat_map)
+            #heat_map_norm = 256*heat_map/np.max(heat_map)
+            heat_map_norm = heat_map
             fig.add_subplot(2,4,7+i)
             plt.title('Heat Map')
             plt.imshow(heat_map_norm[:,:,3])
@@ -485,7 +503,7 @@ if __name__ == '__main__':
     i = 0
     #print(ac_nums)
     
-    for ac_num in ac_nums[0:3]:
+    for ac_num in ac_nums[0:5]:
         print(ac_num)
         optimal_pt = GHT(ac_num)
         print("Detected Optimal Point: ", optimal_pt)
