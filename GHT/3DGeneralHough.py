@@ -360,7 +360,7 @@ def GHT(ac_num):
             
     
     for pt in nms_pts:
-        heat_map = np.zeros((13,13,5))
+        heat_map = np.zeros((9,9,3))
         print("The point being investigated is: ", pt)
 
         for i in range(-4,5):
@@ -405,7 +405,7 @@ def GHT(ac_num):
                         
                         cross_correl_val = cross_correl_val + np.dot(reference_vol_norm, query_vol_norm)
                     
-                    heat_map[i+6,j+6,k+2] = cross_correl_val
+                    heat_map[i+4,j+4,k+1] = cross_correl_val
                     if cross_correl_val > max_cross_correl_val:
                         #print(max_cross_correl_val)
                         max_cross_correl_val = cross_correl_val
@@ -464,6 +464,10 @@ def GHT(ac_num):
 if __name__ == '__main__':
     os.chdir("C:\\Users\\yoons\\Documents\\4th Year Semester 2\\ESC499 - Thesis\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
     
+
+#===================================================================================================
+#Process the accession numbers that are present and put it into a list
+#===================================================================================================
     ac_nums_pp = os.listdir("no_fractures/")
     ac_nums = []
     
@@ -473,6 +477,9 @@ if __name__ == '__main__':
         
         ac_nums.append(str2)
 
+#===================================================================================================
+#Read in ground truth values from the ground_truth_detection_pts.xlsx spreadsheet
+#===================================================================================================
     #For validation set of first 20
     #4687879, 5056218, 5199556, 5235783, 5372580
     ground_truth = {4687879:[35,34,19],5056218:[36,48,19],5199556:[45,54,15],5235783:[41,55,19],5372580:[31,50,19]}
@@ -482,7 +489,7 @@ if __name__ == '__main__':
     i = 0
     #print(ac_nums)
     
-    for ac_num in ac_nums[0:5]:
+    for ac_num in ac_nums[0:1]:
         print(ac_num)
         optimal_pt = GHT(ac_num)
         print("Detected Optimal Point: ", optimal_pt)
