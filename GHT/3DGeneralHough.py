@@ -75,12 +75,6 @@ def build_r_table(image, origin):
     return r_table
 
 def canny_edges_3d(grayImage):
-    global MIN_CANNY_THRESHOLD
-    global MAX_CANNY_THRESHOLD
-
-    MIN_CANNY_THRESHOLD = 20
-    MAX_CANNY_THRESHOLD = 100
-    
     dim = np.shape(grayImage)
     
     edges_x = np.zeros(grayImage.shape, dtype=bool) 
@@ -223,13 +217,12 @@ def GHT(ac_num):
     #Initialize Accumulator that will be used to get top points
     accumulator = np.zeros(dicom_dwn4x_dim)
     
-    random_reference_acs = []
     
     #Randomly choose 5 references
+    random_reference_acs = []
+    
     while len(random_reference_acs) < 5: 
         index = random.randint(0,len(reference_acs)-1)
-        
-        print(index)
         
         if reference_acs[index] not in random_reference_acs:
             random_reference_acs.append(reference_acs[index])
@@ -255,14 +248,9 @@ def GHT(ac_num):
 #Blurring the Accumulator Matrix and Query Edge Image
 #===================================================================================================
     #Blur the final accumulator matrix
-    global std_dev
-    std_dev = 1.0
     final_accumulator = gaussian_filter(final_accumulator,sigma = std_dev, order = 0)
 
     #Blur the edge image for the whole dwn4x
-    global std_dev_edges
-    std_dev_edges = 0.5
-    
     query_edges = canny_edges_3d(dicom_dwn4x_pp)
 
     query_edges_dim = np.shape(query_edges)
@@ -284,10 +272,10 @@ def GHT(ac_num):
 #Initial Plots and Top 40 Points for Visualization Purposes
 #===================================================================================================
     #Plot up to top 40 points
-    fig = plt.figure(num = ac_num + "_accumulator_sigma" + str(std_dev) + "_edge_sigma_" + str(std_dev_edges) + "_min_canny_" + str(MIN_CANNY_THRESHOLD) + "_max_canny_" + str(MAX_CANNY_THRESHOLD), figsize = (24,12))
+    fig = plt.figure(num = image_file_name, figsize = (24,12))
     plt.gray()
 
-    fig.suptitle(ac_num + "_accumulator_sigma" + str(std_dev) + "_edge_sigma_" + str(std_dev_edges) + "_min_canny_" + str(MIN_CANNY_THRESHOLD) + "_max_canny_" + str(MAX_CANNY_THRESHOLD))
+    fig.suptitle(image_file_name)
 
     fig.add_subplot(2,4,1)
     plt.title('Query Image')
@@ -415,7 +403,9 @@ def GHT(ac_num):
                         #Exit current slide location if out of bounds
                         if x1 < 0 or y1 < 0 or z1 < 0:
                             break
-
+                        
+                        if x2 > query_edges_dim[0] or y2 > query_edges_dim[1] or z2 > query_edges_dim[2]:
+                            break
 
                         #Use norms to normalize the vectors for cross-correlation
                         #print(np.linalg.norm(reference_vol))
@@ -456,6 +446,7 @@ def GHT(ac_num):
 
 
     plt.scatter(nms_y_pts,nms_x_pts, marker='o', color='g')
+    
     plt.scatter(optimal_pt[1],optimal_pt[0], marker='X', color='m')
     
     
@@ -472,8 +463,10 @@ def GHT(ac_num):
     
     #plt.show()
     
+    
+    
     #Save Figure
-    plt.savefig(ac_num + "_accumulator_sigma" + str(std_dev) + "_edge_sigma_" + str(std_dev_edges) + "_min_canny_" + str(MIN_CANNY_THRESHOLD) + "_max_canny_" + str(MAX_CANNY_THRESHOLD) + ".png")
+    plt.savefig(image_dir_name + "/" + image_file_name + ".png")
     
     return optimal_pt
 
@@ -487,7 +480,7 @@ def GHT(ac_num):
 if __name__ == '__main__':
     os.chdir("C:\\Users\\yoons\\Documents\\4th Year Semester 2\\ESC499 - Thesis\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
     
-
+    plt.close()
 #===================================================================================================
 #Process the accession numbers that are present and put it into a list
 #===================================================================================================
@@ -535,43 +528,69 @@ if __name__ == '__main__':
     incorrect_ac_num = []
     detection_pt_info = {}
 
+    global std_dev
+    global std_dev_edges
+    global MIN_CANNY_THRESHOLD
+    global MAX_CANNY_THRESHOLD
+    global image_file_name
+    global image_dir_name
     
-    #Go through GHT for the validation set
-    for ac_num in ac_nums:
-        if ac_num in ground_truth.keys():
-            total_detections = total_detections + 1
-            
-            optimal_pt = GHT(ac_num)
-            print("Detected Optimal Point: ", optimal_pt)
-            print("Ground Truth Point: ", ground_truth[ac_num])
-        
-            curr_error = abs(np.linalg.norm(np.subtract(optimal_pt,ground_truth[ac_num])))**2 
-            error = error + curr_error
-            
-            #Can adjust threshold for correct detection accordingly
-            if curr_error <= 12:
-                correct_detections = correct_detections + 1
-            else:
-                incorrect_ac_num.append(ac_num)
+    std_devs = [0,0.5,1.0,1.5]
+    std_devs_edges = [0,0.5,1.0]
+    min_cannys = [10,20,30,40,50,60]
+    max_cannys = [80,100,120,140,160]
+    
+    for std_dev in std_devs:
+        for std_dev_edges in std_devs_edges:
+            for MIN_CANNY_THRESHOLD in min_cannys:
+                for MAX_CANNY_THRESHOLD in max_cannys:
+    
+                    image_dir_name = "accumulator_sigma" + str(std_dev) + "_edge_sigma_" + str(std_dev_edges) + "_min_canny_" + str(MIN_CANNY_THRESHOLD) + "_max_canny_" + str(MAX_CANNY_THRESHOLD)
+                    
+                    print(image_dir_name)
+                    
+                    if os.path.isdir(image_dir_name) != 1:
+                        os.mkdir(image_dir_name)
+                    
+                    #Go through GHT for the validation set
+                    for ac_num in ac_nums:
+                        if ac_num in ground_truth.keys():
+                            image_file_name = ac_num + "_accumulator_sigma" + str(std_dev) + "_edge_sigma_" + str(std_dev_edges) + "_min_canny_" + str(MIN_CANNY_THRESHOLD) + "_max_canny_" + str(MAX_CANNY_THRESHOLD)
+                            total_detections = total_detections + 1
+                            
+                            optimal_pt = GHT(ac_num)
+                            print("Detected Optimal Point: ", optimal_pt)
+                            print("Ground Truth Point: ", ground_truth[ac_num])
+                        
+                            curr_error = abs(np.linalg.norm(np.subtract(optimal_pt,ground_truth[ac_num])))**2 
+                            error = error + curr_error
+                            
+                            #Can adjust threshold for correct detection accordingly
+                            if curr_error <= 12:
+                                correct_detections = correct_detections + 1
+                            else:
+                                incorrect_ac_num.append(ac_num)
+                                
+                            #Keep record of the information
+                            detection_pt_info[ac_num] = optimal_pt	
+                    
+                    plt.close()
+                    
                 
-            #Keep record of the information
-            detection_pt_info[ac_num] = optimal_pt	
-    
-    #plt.show()
-    
-    print("======================================")
-    print("********SUMMARY OF PERFORMANCE********")
-    print("======================================")
-
-    print("Min Canny Threshold: ", MIN_CANNY_THRESHOLD)
-    print("Max Canny Threshold: ", MAX_CANNY_THRESHOLD)
-    print("Sigma Accumulator: ", std_dev)
-    print("Sigma Edges: ", std_dev_edges)
-
-    print("The squared error for this trial on the validation set is :", error)
-    print("The detection rate is: " + str(correct_detections) + "/" + str(total_detections))
-    
-    print("The Access Numbers for Incorrect Detections are: ", incorrect_ac_num)
-    print("Detection Point Information: ", detection_pt_info)
+                    
+                    print("======================================")
+                    print("********SUMMARY OF PERFORMANCE********")
+                    print("======================================")
+                
+                    print("Min Canny Threshold: ", MIN_CANNY_THRESHOLD)
+                    print("Max Canny Threshold: ", MAX_CANNY_THRESHOLD)
+                    print("Sigma Accumulator: ", std_dev)
+                    print("Sigma Edges: ", std_dev_edges)
+                
+                    print("The squared error for this trial on the validation set is :", error)
+                    print("The detection rate is: " + str(correct_detections) + "/" + str(len(ground_truth.keys())))
+                    
+                    print("The Accession Numbers for Incorrect Detections are: ", incorrect_ac_num)
+                    print("Detection Point Information: ", detection_pt_info)
 #===================================================================================================
 #===================================================================================================
