@@ -522,12 +522,6 @@ if __name__ == '__main__':
 #===================================================================================================
 #Compute Detection Points, compare with ground truth to get error and detection rate
 #===================================================================================================
-    error = 0
-    correct_detections = 0
-    total_detections = 0
-    incorrect_ac_num = []
-    detection_pt_info = {}
-
     global std_dev
     global std_dev_edges
     global MIN_CANNY_THRESHOLD
@@ -535,16 +529,20 @@ if __name__ == '__main__':
     global image_file_name
     global image_dir_name
     
-    std_devs = [0,0.5,1.0,1.5]
-    std_devs_edges = [0,0.5,1.0]
+    std_devs = [0.5,1.0,1.5]
+    std_devs_edges = [0,0.5,1.0,1.5]
     min_cannys = [10,20,30,40,50,60]
-    max_cannys = [80,100,120,140,160]
+    max_cannys = [80,100,120,140,160,180]
     
     for std_dev in std_devs:
         for std_dev_edges in std_devs_edges:
             for MIN_CANNY_THRESHOLD in min_cannys:
                 for MAX_CANNY_THRESHOLD in max_cannys:
-    
+                    error = 0
+                    correct_detections = 0
+                    incorrect_ac_num = []
+                    detection_pt_info = {}
+                    
                     image_dir_name = "accumulator_sigma" + str(std_dev) + "_edge_sigma_" + str(std_dev_edges) + "_min_canny_" + str(MIN_CANNY_THRESHOLD) + "_max_canny_" + str(MAX_CANNY_THRESHOLD)
                     
                     print(image_dir_name)
