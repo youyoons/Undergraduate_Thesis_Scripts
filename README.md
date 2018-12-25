@@ -1,4 +1,4 @@
-# 3D Detection, Identification, and Segmentation of CSpine Vertebrae
+# 3D Image Registration of Cervical Spine Vertebrae CT Scans
 This repository contains all scripts and programs required to successfully and robustly detect the C1 and C2 vertebrae of the (cervical) spine, then segment the detected vertebrae.
 
 *Detection Flow
