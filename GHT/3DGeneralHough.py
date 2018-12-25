@@ -11,6 +11,7 @@ import cv2 as cv
 from scipy import signal
 from scipy.ndimage.filters import gaussian_filter
 import datetime
+import openpyxl
 try:
     import cPickle
 except ImportError:
@@ -73,6 +74,9 @@ def build_r_table(image, origin):
     return r_table
 
 def canny_edges_3d(grayImage):
+    global MIN_CANNY_THRESHOLD
+    global MAX_CANNY_THRESHOLD
+
     MIN_CANNY_THRESHOLD = 100
     MAX_CANNY_THRESHOLD = 200
     
@@ -239,10 +243,12 @@ def GHT(ac_num):
 #Blurring the Accumulator Matrix and Query Edge Image
 #===================================================================================================
     #Blur the final accumulator matrix
+    global std_dev
     std_dev = 1.0
     final_accumulator = gaussian_filter(final_accumulator,sigma = std_dev, order = 0)
 
     #Blur the edge image for the whole dwn4x
+    global std_dev_edges
     std_dev_edges = 0.5
     
     query_edges = canny_edges_3d(dicom_dwn4x_pp)
@@ -266,7 +272,7 @@ def GHT(ac_num):
 #Initial Plots and Top 40 Points for Visualization Purposes
 #===================================================================================================
     #Plot up to top 40 points
-    fig = plt.figure(num = ac_num + "_sigma" + str(std_dev), figsize = (24,12))
+    fig = plt.figure(num = ac_num + "_accumulator_sigma" + str(std_dev) + "_edge_sigma_" + str(std_dev_edges) + "_min_canny_" + str(MIN_CANNY_THRESHOLD) + "_max_canny_" + str(MAX_CANNY_THRESHOLD), figsize = (24,12))
     plt.gray()
 
     fig.suptitle(ac_num + "_sigma" + str(std_dev))
@@ -464,6 +470,8 @@ def GHT(ac_num):
 #===================================================================================================
 
 
+#===================================================================================================
+#===================================================================================================
 if __name__ == '__main__':
     os.chdir("C:\\Users\\yoons\\Documents\\4th Year Semester 2\\ESC499 - Thesis\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
     
@@ -479,28 +487,72 @@ if __name__ == '__main__':
         str2 = str1.split("_")[0]
         
         ac_nums.append(str2)
-
+    
+    #print(ac_nums)
+    #print(len(ac_nums))
 #===================================================================================================
 #Read in ground truth values from the ground_truth_detection_pts.xlsx spreadsheet
 #===================================================================================================
-    #For validation set of first 20
-    #4687879, 5056218, 5199556, 5235783, 5372580
-    #ground_truth = {4687879:[35,34,19],5056218:[36,48,19],5199556:[45,54,15],5235783:[41,55,19],5372580:[31,50,19]}
+    #Get the detection results for the validation set
+    book = openpyxl.load_workbook("../GHT/ground_truth_detection_pts.xlsx")
+    sheet = book.active
+    row_count = sheet.max_row
     
-    #Get the detection results for the given accession number(s)
-    error = 0
-    i = 0
-    #print(ac_nums)
-    
-    for ac_num in ac_nums[0:5]:
-        print(ac_num)
-        optimal_pt = GHT(ac_num)
-        print("Detected Optimal Point: ", optimal_pt)
-        #print("Ground Truth Point: ", ground_truth[int(ac_num)])
+    ground_truth = {}
+
+    for i in range(3,row_count//3): #divided by 3 as a test 
         
-        #error = error + abs(np.linalg.norm(np.subtract(optimal_pt,ground_truth[int(ac_num)])))**2 #use least squares error
-        i = i + 1
+        ac_num_loc = sheet.cell(row = i,column = 1)
+        ac_num = str(ac_num_loc.value)
+        
+        x = sheet.cell(row = i, column = 2).value
+        y = sheet.cell(row = i, column = 3).value
+        z = sheet.cell(row = i, column = 4).value
+        
+        if (x != None) and (y != None) and (z != None):
+            ground_truth[ac_num] = [x,y,z]
+
+
+#===================================================================================================
+#Compute Detection Points, compare with ground truth to get error and detection rate
+#===================================================================================================
+    error = 0
+    correct_detections = 0
+    total_detections = 0
+    incorrect_ac_num = []
+    correct_ac_num = {}
     
-    #print("The squared error for this trial on the validation set is :", error)
+    #Go through GHT for the validation set
+    for ac_num in ac_nums[0:60]:
+        if ac_num in ground_truth.keys():
+            total_detections = total_detections + 1
+            optimal_pt = GHT(ac_num)
+            print("Detected Optimal Point: ", optimal_pt)
+            print("Ground Truth Point: ", ground_truth[ac_num])
+        
+            curr_error = abs(np.linalg.norm(np.subtract(optimal_pt,ground_truth[ac_num])))**2 
+            error = error + curr_error
+            
+            #Can adjust threshold for correct detection accordingly
+            if curr_error <= 12:
+                correct_detections = correct_detections + 1
+                correct_ac_num[ac_num] = optimal_pt
+            else:
+                incorrect_ac_num.append(ac_num)
     
+    print("======================================")
+    print("********SUMMARY OF PERFORMANCE********")
+    print("======================================")
+
+    print("Min Canny Threshold: ", MIN_CANNY_THRESHOLD)
+    print("Max Canny Threshold: ", MAX_CANNY_THRESHOLD)
+    print("Sigma Accumulator: ", std_dev)
+    print("Sigma Edges: ", std_dev_edges)
+
+    print("The squared error for this trial on the validation set is :", error)
+    print("The detection rate is: " + str(correct_detections) + "/" + str(total_detections))
     
+    print("The Access Numbers for Incorrect Detections are: ", incorrect_ac_num)
+    print("Detection Point Information: ", correct_ac_num)
+#===================================================================================================
+#===================================================================================================
