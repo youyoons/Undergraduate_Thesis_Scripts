@@ -12,6 +12,7 @@ from scipy import signal
 from scipy.ndimage.filters import gaussian_filter
 import datetime
 import openpyxl
+import random
 try:
     import cPickle
 except ImportError:
@@ -222,7 +223,18 @@ def GHT(ac_num):
     #Initialize Accumulator that will be used to get top points
     accumulator = np.zeros(dicom_dwn4x_dim)
     
-    for reference_ac in reference_acs:
+    random_reference_acs = []
+    
+    #Randomly choose 5 references
+    while len(random_reference_acs) < 5: 
+        index = random.randint(0,len(reference_acs)-1)
+        
+        print(index)
+        
+        if reference_acs[index] not in random_reference_acs:
+            random_reference_acs.append(reference_acs[index])
+    
+    for reference_ac in random_reference_acs:
         print("Current Reference: ", reference_ac)
         
         #Open up the Reference that is used as the reference image
@@ -357,7 +369,7 @@ def GHT(ac_num):
     heat_maps = []
     
     #Generate the edge references if they do not exist in the directory "no_Fractures"
-    for reference_ac in reference_acs:
+    for reference_ac in random_reference_acs:
         if not os.path.isfile("no_fractures/edge_" + str(std_dev_edges) + "_" + reference_ac):
             reference_vol_pp1 = cPickle.load(open("no_fractures/" + reference_ac,"rb"),encoding = 'latin1')
             reference_vol_pp2 = np.array(reference_vol_pp1)
@@ -378,7 +390,7 @@ def GHT(ac_num):
                 for k in range(-1,2):
                     cross_correl_val = 0
                     
-                    for reference_ac in reference_acs:
+                    for reference_ac in random_reference_acs:
                         reference_vol_pp = cPickle.load(open("no_fractures/edge_" + str(std_dev_edges) + "_" + reference_ac,"rb"),encoding = 'latin1')
                         #reference_dim is the dimension of the edge reference
                         reference_dim = np.shape(reference_vol_pp)
@@ -461,7 +473,7 @@ def GHT(ac_num):
     #plt.show()
     
     #Save Figure
-    #plt.savefig(ac_num + "_sigma" + str(std_dev) + ".png")
+    plt.savefig(ac_num + "_accumulator_sigma" + str(std_dev) + "_edge_sigma_" + str(std_dev_edges) + "_min_canny_" + str(MIN_CANNY_THRESHOLD) + "_max_canny_" + str(MAX_CANNY_THRESHOLD) + ".png")
     
     return optimal_pt
 
@@ -512,7 +524,8 @@ if __name__ == '__main__':
         if (x != None) and (y != None) and (z != None):
             ground_truth[ac_num] = [x,y,z]
 
-
+    #print(len(ground_truth.keys()))
+    
 #===================================================================================================
 #Compute Detection Points, compare with ground truth to get error and detection rate
 #===================================================================================================
@@ -521,6 +534,7 @@ if __name__ == '__main__':
     total_detections = 0
     incorrect_ac_num = []
     detection_pt_info = {}
+
     
     #Go through GHT for the validation set
     for ac_num in ac_nums:
@@ -543,7 +557,7 @@ if __name__ == '__main__':
             #Keep record of the information
             detection_pt_info[ac_num] = optimal_pt	
     
-    plt.show()
+    #plt.show()
     
     print("======================================")
     print("********SUMMARY OF PERFORMANCE********")
