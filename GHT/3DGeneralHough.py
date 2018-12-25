@@ -554,7 +554,7 @@ if __name__ == '__main__':
                     for ac_num in ac_nums:
                         if ac_num in ground_truth.keys():
                             image_file_name = ac_num + "_accumulator_sigma" + str(std_dev) + "_edge_sigma_" + str(std_dev_edges) + "_min_canny_" + str(MIN_CANNY_THRESHOLD) + "_max_canny_" + str(MAX_CANNY_THRESHOLD)
-                            total_detections = total_detections + 1
+                            #total_detections = total_detections + 1
                             
                             optimal_pt = GHT(ac_num)
                             print("Detected Optimal Point: ", optimal_pt)
