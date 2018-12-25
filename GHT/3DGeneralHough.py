@@ -77,8 +77,8 @@ def canny_edges_3d(grayImage):
     global MIN_CANNY_THRESHOLD
     global MAX_CANNY_THRESHOLD
 
-    MIN_CANNY_THRESHOLD = 100
-    MAX_CANNY_THRESHOLD = 200
+    MIN_CANNY_THRESHOLD = 20
+    MAX_CANNY_THRESHOLD = 100
     
     dim = np.shape(grayImage)
     
@@ -124,7 +124,7 @@ def accumulate_gradients(r_table, grayImage):
     accum_j = 0 
     accum_k = 0
 
-    print (datetime.datetime.now())
+    #print (datetime.datetime.now())
 
     for (i,j,k),value in np.ndenumerate(edges):
         if value:
@@ -133,7 +133,7 @@ def accumulate_gradients(r_table, grayImage):
                 if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
                     accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1
                 
-    print (datetime.datetime.now())
+    #print (datetime.datetime.now())
 
     return accumulator
 
@@ -275,7 +275,7 @@ def GHT(ac_num):
     fig = plt.figure(num = ac_num + "_accumulator_sigma" + str(std_dev) + "_edge_sigma_" + str(std_dev_edges) + "_min_canny_" + str(MIN_CANNY_THRESHOLD) + "_max_canny_" + str(MAX_CANNY_THRESHOLD), figsize = (24,12))
     plt.gray()
 
-    fig.suptitle(ac_num + "_sigma" + str(std_dev))
+    fig.suptitle(ac_num + "_accumulator_sigma" + str(std_dev) + "_edge_sigma_" + str(std_dev_edges) + "_min_canny_" + str(MIN_CANNY_THRESHOLD) + "_max_canny_" + str(MAX_CANNY_THRESHOLD))
 
     fig.add_subplot(2,4,1)
     plt.title('Query Image')
@@ -458,7 +458,7 @@ def GHT(ac_num):
         except:
             pass
     
-    plt.show()
+    #plt.show()
     
     #Save Figure
     #plt.savefig(ac_num + "_sigma" + str(std_dev) + ".png")
@@ -500,7 +500,7 @@ if __name__ == '__main__':
     
     ground_truth = {}
 
-    for i in range(3,row_count//3): #divided by 3 as a test 
+    for i in range(3,row_count): #divided by 3 as a test 
         
         ac_num_loc = sheet.cell(row = i,column = 1)
         ac_num = str(ac_num_loc.value)
@@ -520,12 +520,13 @@ if __name__ == '__main__':
     correct_detections = 0
     total_detections = 0
     incorrect_ac_num = []
-    correct_ac_num = {}
+    detection_pt_info = {}
     
     #Go through GHT for the validation set
-    for ac_num in ac_nums[0:60]:
+    for ac_num in ac_nums:
         if ac_num in ground_truth.keys():
             total_detections = total_detections + 1
+            
             optimal_pt = GHT(ac_num)
             print("Detected Optimal Point: ", optimal_pt)
             print("Ground Truth Point: ", ground_truth[ac_num])
@@ -536,9 +537,13 @@ if __name__ == '__main__':
             #Can adjust threshold for correct detection accordingly
             if curr_error <= 12:
                 correct_detections = correct_detections + 1
-                correct_ac_num[ac_num] = optimal_pt
             else:
                 incorrect_ac_num.append(ac_num)
+                
+            #Keep record of the information
+            detection_pt_info[ac_num] = optimal_pt	
+    
+    plt.show()
     
     print("======================================")
     print("********SUMMARY OF PERFORMANCE********")
@@ -553,6 +558,6 @@ if __name__ == '__main__':
     print("The detection rate is: " + str(correct_detections) + "/" + str(total_detections))
     
     print("The Access Numbers for Incorrect Detections are: ", incorrect_ac_num)
-    print("Detection Point Information: ", correct_ac_num)
+    print("Detection Point Information: ", detection_pt_info)
 #===================================================================================================
 #===================================================================================================
