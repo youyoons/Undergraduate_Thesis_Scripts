@@ -13,6 +13,7 @@ from scipy.ndimage.filters import gaussian_filter
 import datetime
 import openpyxl
 import random
+import json
 try:
     import cPickle
 except ImportError:
@@ -24,7 +25,7 @@ def gradient_orientation(image):
     Calculate the gradient orientation for edge point in the image
     '''
     #scipy.ndimage.sobel
-    dx = sobel(image, axis=0, mode='constant')
+    dx = sobel(image, axis=0, mode='constant')	
     dy = sobel(image, axis=1, mode='constant')
     dz = sobel(image, axis=1, mode='constant')
     
@@ -219,13 +220,15 @@ def GHT(ac_num):
     
     
     #Randomly choose 5 references
-    random_reference_acs = []
+    #random_reference_acs = []
+    random_reference_acs = reference_acs[0:5]
+
     
-    while len(random_reference_acs) < 5: 
-        index = random.randint(0,len(reference_acs)-1)
+    #while len(random_reference_acs) < 5: 
+    #    index = random.randint(0,len(reference_acs)-1)
         
-        if reference_acs[index] not in random_reference_acs:
-            random_reference_acs.append(reference_acs[index])
+    #    if reference_acs[index] not in random_reference_acs:
+    #        random_reference_acs.append(reference_acs[index])
     
     for reference_ac in random_reference_acs:
         print("Current Reference: ", reference_ac)
@@ -529,10 +532,10 @@ if __name__ == '__main__':
     global image_file_name
     global image_dir_name
     
-    std_devs = [0.5,1.0,1.5]
-    std_devs_edges = [0,0.5,1.0,1.5]
-    min_cannys = [10,20,30,40,50,60]
-    max_cannys = [80,100,120,140,160,180]
+    std_devs = [0.5,1.0,1.5,2.0]
+    std_devs_edges = [0.0,0.5,1.0,1.5,2.0]
+    min_cannys = [20,30,40,50,60]
+    max_cannys = [100,120,140,160,180]
     
     for std_dev in std_devs:
         for std_dev_edges in std_devs_edges:
@@ -549,6 +552,8 @@ if __name__ == '__main__':
                     
                     if os.path.isdir(image_dir_name) != 1:
                         os.mkdir(image_dir_name)
+                    else:
+                        continue
                     
                     #Go through GHT for the validation set
                     for ac_num in ac_nums:
@@ -570,7 +575,7 @@ if __name__ == '__main__':
                                 incorrect_ac_num.append(ac_num)
                                 
                             #Keep record of the information
-                            detection_pt_info[ac_num] = optimal_pt	
+                            detection_pt_info[ac_num] = [optimal_pt	, curr_error]
                     
                     plt.close()
                     
@@ -590,5 +595,38 @@ if __name__ == '__main__':
                     
                     print("The Accession Numbers for Incorrect Detections are: ", incorrect_ac_num)
                     print("Detection Point Information: ", detection_pt_info)
+                    
+                    #Output General Information to File
+                    f = open(image_dir_name + "/summary.txt","w")
+                    f.write("======================================\n")
+                    f.write("********SUMMARY OF PERFORMANCE********\n")
+                    f.write("======================================\n")
+                    f.write("Min Canny Threshold: %s \n" % str(MIN_CANNY_THRESHOLD))
+                    f.write("Max Canny Threshold: %s \n" % str(MAX_CANNY_THRESHOLD))
+                    f.write("Sigma Accumulator: %s \n" % str(std_dev))
+                    f.write("Sigma Edges: %s \n\n" % str(std_dev_edges))
+                    
+                    f.write("The squared error for this trial on the validation set is: %s \n\n" % str(error))
+                    
+                    f.write("The number of correct detections is %s" % correct_detections)
+                    f.write("/%s \n\n" % str(len(ground_truth.keys())))
+                    
+                    f.write("Incorrect Accession Numbers: \n")
+                    for item in incorrect_ac_num:
+                        f.write("%s  " % str(item))
+
+                    f.write("\n\n")
+                    f.write("Below are the detections points: \n")
+                    for key in detection_pt_info.keys():
+                        f.write("AC Num: %s    Detected Point: " % str(key))
+                        
+                        info = detection_pt_info[key]
+                        f.write("%s    Error: " % str(info[0]))
+                        f.write("%s" % info[1])
+                        f.write("\n")
+                    
+                    f.close()
+                    
+                    
 #===================================================================================================
 #===================================================================================================
