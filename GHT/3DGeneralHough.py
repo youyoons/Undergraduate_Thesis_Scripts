@@ -491,13 +491,12 @@ if __name__ == '__main__':
     ac_nums = []
     
     for ac_num_pp in ac_nums_pp:
-        str1 = ac_num_pp.split("dicom_3d_")[1]
-        str2 = str1.split("_")[0]
-        
-        ac_nums.append(str2)
+        if "reference" not in ac_num_pp:
+            str1 = ac_num_pp.split("dicom_3d_")[1]
+            str2 = str1.split("_")[0]
+            
+            ac_nums.append(str2)
     
-    #print(ac_nums)
-    #print(len(ac_nums))
 #===================================================================================================
 #Read in ground truth values from the ground_truth_detection_pts.xlsx spreadsheet
 #===================================================================================================
@@ -548,7 +547,7 @@ if __name__ == '__main__':
                     
                     image_dir_name = "accumulator_sigma" + str(std_dev) + "_edge_sigma_" + str(std_dev_edges) + "_min_canny_" + str(MIN_CANNY_THRESHOLD) + "_max_canny_" + str(MAX_CANNY_THRESHOLD)
                     
-                    print(image_dir_name)
+                    print("Currently on: " + image_dir_name)
                     
                     if os.path.isdir(image_dir_name) != 1:
                         os.mkdir(image_dir_name)
