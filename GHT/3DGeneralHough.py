@@ -13,7 +13,6 @@ from scipy.ndimage.filters import gaussian_filter
 import datetime
 import openpyxl
 import random
-import json
 try:
     import cPickle
 except ImportError:
@@ -43,26 +42,10 @@ def gradient_orientation(image):
 
 def build_r_table(image, origin):
     '''
-    Build the R-table from the given shape image and a referenc point
+    Build the R-table from the given shape image and a reference point
     '''
+    edges = canny_edges_3d(image)
     
-    dx = sobel(image, 0)  # x derivative
-    dy = sobel(image, 1)  # y derivative
-    dz = sobel(image, 2)  # z derivative
-    
-    mag = np.sqrt(dx*dx + dy*dy + dz*dz)
-    mag_norm = mag/np.max(mag)
-    
-    #Creating edge array the same size as query image
-    edges = np.zeros(image.shape, dtype=bool)
-    
-    for i in range(edges.shape[0]):
-        for j in range(edges.shape[1]):
-            for k in range(edges.shape[2]):
-                if mag_norm[i,j,k] > 0.3 :# and mag_norm[i,j,k] < 0.9:
-                    edges[i,j,k] = True
-    
-
     #Takes (47,40) Edges and calculates the gradients using sobel
     phi, psi = gradient_orientation(edges)
     #print("Phi Dim: ", phi.shape)
@@ -85,16 +68,15 @@ def canny_edges_3d(grayImage):
     
 
     for i in range(dim[0]):
-        edges_x[i,:,:] = canny(grayImage[i,:,:], low_threshold=MIN_CANNY_THRESHOLD, high_threshold=MAX_CANNY_THRESHOLD, sigma = 0)
+        edges_x[i,:,:] = canny(grayImage[i,:,:], low_threshold=MIN_CANNY_THRESHOLD, high_threshold=MAX_CANNY_THRESHOLD, sigma = 0.5)
    
     for j in range(dim[1]):
-        edges_y[:,j,:] = canny(grayImage[:,j,:], low_threshold=MIN_CANNY_THRESHOLD, high_threshold=MAX_CANNY_THRESHOLD, sigma = 0)
+        edges_y[:,j,:] = canny(grayImage[:,j,:], low_threshold=MIN_CANNY_THRESHOLD, high_threshold=MAX_CANNY_THRESHOLD, sigma = 0.5)
         
     for k in range(dim[2]):
-        edges_z[:,:,k] = canny(grayImage[:,:,k], low_threshold=MIN_CANNY_THRESHOLD, high_threshold=MAX_CANNY_THRESHOLD, sigma = 0)
+        edges_z[:,:,k] = canny(grayImage[:,:,k], low_threshold=MIN_CANNY_THRESHOLD, high_threshold=MAX_CANNY_THRESHOLD, sigma = 0.5)
     
     
-   # edges = canny(grayImage, low_threshold=MIN_CANNY_THRESHOLD, high_threshold=MAX_CANNY_THRESHOLD)
     for i in range(dim[0]):
         for j in range(dim[1]):
             for k in range(dim[2]):
@@ -104,6 +86,7 @@ def canny_edges_3d(grayImage):
     
     return edges
 
+#grayImage is queryImage
 def accumulate_gradients(r_table, grayImage):
     '''
     Perform a General Hough Transform with the given image and R-table
@@ -372,6 +355,15 @@ def GHT(ac_num):
             #print("no_fractures/edge_" + reference_ac)
             
     
+    if len(nms_pts) > 1:
+        low_pt = nms_pts[0]
+        
+        for pt in nms_pts:
+            if pt[0] > low_pt[0]:
+                low_pt = pt
+        
+        nms_pts.remove(low_pt)
+        
     for pt in nms_pts:
         heat_map = np.zeros((9,9,3))
         print("The point being investigated is: ", pt)
@@ -496,7 +488,7 @@ if __name__ == '__main__':
             str2 = str1.split("_")[0]
             
             ac_nums.append(str2)
-    
+
 #===================================================================================================
 #Read in ground truth values from the ground_truth_detection_pts.xlsx spreadsheet
 #===================================================================================================
@@ -518,8 +510,6 @@ if __name__ == '__main__':
         
         if (x != None) and (y != None) and (z != None):
             ground_truth[ac_num] = [x,y,z]
-
-    #print(len(ground_truth.keys()))
     
 #===================================================================================================
 #Compute Detection Points, compare with ground truth to get error and detection rate
@@ -531,10 +521,10 @@ if __name__ == '__main__':
     global image_file_name
     global image_dir_name
     
-    std_devs = [0.5,1.0,1.5,2.0]
-    std_devs_edges = [0.0,0.5,1.0,1.5,2.0]
+    std_devs = [1.0,1.5,2.0]
+    std_devs_edges = [0,0.5,1.0,1.5,2.0]
     min_cannys = [20,30,40,50,60]
-    max_cannys = [100,120,140,160,180]
+    max_cannys = [160,180,200,220,240,260]
     
     for std_dev in std_devs:
         for std_dev_edges in std_devs_edges:
@@ -574,7 +564,7 @@ if __name__ == '__main__':
                                 incorrect_ac_num.append(ac_num)
                                 
                             #Keep record of the information
-                            detection_pt_info[ac_num] = [optimal_pt	, curr_error]
+                            detection_pt_info[ac_num] = [optimal_pt, ground_truth[ac_num], curr_error]
                     
                     plt.close()
                     
@@ -620,8 +610,9 @@ if __name__ == '__main__':
                         f.write("AC Num: %s    Detected Point: " % str(key))
                         
                         info = detection_pt_info[key]
-                        f.write("%s    Error: " % str(info[0]))
-                        f.write("%s" % info[1])
+                        f.write("%s    Actual Point: " % str(info[0]))
+                        f.write("%s    Error: " %str(info[1]))
+                        f.write("%s" % info[2])
                         f.write("\n")
                     
                     f.close()
