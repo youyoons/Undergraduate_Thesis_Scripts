@@ -13,6 +13,7 @@ from scipy.ndimage.filters import gaussian_filter
 import datetime
 import openpyxl
 import random
+import cython
 try:
     import cPickle
 except ImportError:
@@ -99,20 +100,148 @@ def accumulate_gradients(r_table, grayImage):
     phi, psi = gradient_orientation(edges)
     
     accumulator = np.zeros(grayImage.shape)
+    #int accum_i
     accum_i = 0
     accum_j = 0 
     accum_k = 0
 
-    #print (datetime.datetime.now())
+    edges_dim = np.shape(edges)
 
+    print(datetime.datetime.now())
+    
+    
     for (i,j,k),value in np.ndenumerate(edges):
+        if value: 
+            for r in r_table[(int(phi[i,j,k]), int(psi[i,j,k]))]:
+                #iterations = iterations + 1
+                accum_i, accum_j, accum_k = i+r[0], j+r[1], k+r[2]
+                if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
+                    accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1 
+  
+    
+        
+    '''
+    for i in range(edges_dim[0]//2):
+        for j in range(edges_dim[1]//2):
+            for k in range(edges_dim[2]):
+                if edges[i,j,k]:
+                    for r in r_table[(int(phi[i,j,k]), int(psi[i,j,k]))]:
+                        accum_i, accum_j, accum_k = i+r[0], j+r[1], k+r[2]
+                        if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
+                            accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1
+
+    for i in range(edges_dim[0]//2):
+        for j in range(edges_dim[1]//2,edges_dim[1]):
+            for k in range(edges_dim[2]):
+                if edges[i,j,k]:
+                    for r in r_table[(int(phi[i,j,k]), int(psi[i,j,k]))]:
+                        accum_i, accum_j, accum_k = i+r[0], j+r[1], k+r[2]
+                        if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
+                            accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1
+           
+
+    for i in range(edges_dim[0]//2,edges_dim[0]):
+        for j in range(edges_dim[1]//2):
+            for k in range(edges_dim[2]):
+                if edges[i,j,k]:
+                    for r in r_table[(int(phi[i,j,k]), int(psi[i,j,k]))]:
+                        accum_i, accum_j, accum_k = i+r[0], j+r[1], k+r[2]
+                        if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
+                            accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1    
+
+    for i in range(edges_dim[0]//2,edges_dim[0]):
+        for j in range(edges_dim[1]//2,edges_dim[1]):
+            for k in range(edges_dim[2]):
+                if edges[i,j,k]:
+                    for r in r_table[(int(phi[i,j,k]), int(psi[i,j,k]))]:
+                        accum_i, accum_j, accum_k = i+r[0], j+r[1], k+r[2]
+                        if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
+                            accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1                                
+    '''
+    
+    
+    '''
+    #Top Half of Edges==========================================================================
+    for (i,j,k),value in np.ndenumerate(edges[0:edges_dim[0]//2,0:edges_dim[1]//2,0:edges_dim[2]//2]):
         if value:
+            for r in r_table[(int(phi[i,j,k]), int(psi[i,j,k]))]:
+                #iterations = iterations + 1
+                accum_i, accum_j, accum_k = i+r[0], j+r[1], k+r[2]
+                if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
+                    accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1
+                    
+    for (i,j,k),value in np.ndenumerate(edges[0:edges_dim[0]//2,edges_dim[1]//2: edges_dim[1],0:edges_dim[2]//2]):
+        if value:
+            j = j + edges_dim[1]//2
             for r in r_table[(int(phi[i,j,k]), int(psi[i,j,k]))]:
                 accum_i, accum_j, accum_k = i+r[0], j+r[1], k+r[2]
                 if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
                     accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1
-                
-    #print (datetime.datetime.now())
+                    
+                    
+    for (i,j,k),value in np.ndenumerate(edges[edges_dim[0]//2: edges_dim[0],0:edges_dim[1]//2,0:edges_dim[2]//2]):
+        if value:
+            i = i + edges_dim[0]//2
+            for r in r_table[(int(phi[i,j,k]), int(psi[i,j,k]))]:
+                accum_i, accum_j, accum_k = i+r[0], j+r[1], k+r[2]
+                if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
+                    accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1
+    
+    for (i,j,k),value in np.ndenumerate(edges[edges_dim[0]//2: edges_dim[0],edges_dim[1]//2: edges_dim[1],0:edges_dim[2]//2]):
+        if value:
+            i = i + edges_dim[0]//2
+            j = j + edges_dim[1]//2
+            for r in r_table[(int(phi[i,j,k]), int(psi[i,j,k]))]:
+                accum_i, accum_j, accum_k = i+r[0], j+r[1], k+r[2]
+                if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
+                    accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1
+    
+    #Bottom Half of Edges=======================================================================
+    for (i,j,k),value in np.ndenumerate(edges[0:edges_dim[0]//2,0:edges_dim[1]//2,edges_dim[2]//2:edges_dim[2]]):
+        if value:
+            k = k + edges_dim[2]//2
+            for r in r_table[(int(phi[i,j,k]), int(psi[i,j,k]))]:
+                accum_i, accum_j, accum_k = i+r[0], j+r[1], k+r[2]
+                if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
+                    accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1
+                    
+    for (i,j,k),value in np.ndenumerate(edges[0:edges_dim[0]//2,edges_dim[1]//2: edges_dim[1],edges_dim[2]//2:edges_dim[2]]):
+
+        if value:
+            j = j + edges_dim[1]//2
+            k = k + edges_dim[2]//2
+            for r in r_table[(int(phi[i,j,k]), int(psi[i,j,k]))]:
+                accum_i, accum_j, accum_k = i+r[0], j+r[1], k+r[2]
+                if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
+                    accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1
+                    
+                    
+    for (i,j,k),value in np.ndenumerate(edges[edges_dim[0]//2: edges_dim[0],0:edges_dim[1]//2,edges_dim[2]//2 :edges_dim[2]]):
+
+        if value:
+            i = i + edges_dim[0]//2
+            k = k + edges_dim[2]//2
+            for r in r_table[(int(phi[i,j,k]), int(psi[i,j,k]))]:
+                accum_i, accum_j, accum_k = i+r[0], j+r[1], k+r[2]
+                if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
+                    accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1
+    
+    for (i,j,k),value in np.ndenumerate(edges[edges_dim[0]//2: edges_dim[0],edges_dim[1]//2: edges_dim[1],edges_dim[2]//2:edges_dim[2]]):
+
+        if value:
+            i = i + edges_dim[0]//2
+            j = j + edges_dim[1]//2
+            k = k + edges_dim[2]//2    
+            for r in r_table[(int(phi[i,j,k]), int(psi[i,j,k]))]:
+                accum_i, accum_j, accum_k = i+r[0], j+r[1], k+r[2]
+                if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
+                    accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1    
+    '''
+
+    print(datetime.datetime.now())  
+    
+    #Approximately 400-550k iterations
+    #print("Number of Iterations in Accumulate Gradients: ", iterations)
 
     return accumulator
 
