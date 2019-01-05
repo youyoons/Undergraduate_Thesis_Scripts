@@ -69,13 +69,13 @@ def canny_edges_3d(grayImage):
     
 
     for i in range(dim[0]):
-        edges_x[i,:,:] = canny(grayImage[i,:,:], low_threshold=MIN_CANNY_THRESHOLD, high_threshold=MAX_CANNY_THRESHOLD, sigma = 0.5)
+        edges_x[i,:,:] = canny(grayImage[i,:,:], low_threshold=MIN_CANNY_THRESHOLD, high_threshold=MAX_CANNY_THRESHOLD, sigma = std_dev_canny)
    
     for j in range(dim[1]):
-        edges_y[:,j,:] = canny(grayImage[:,j,:], low_threshold=MIN_CANNY_THRESHOLD, high_threshold=MAX_CANNY_THRESHOLD, sigma = 0.5)
+        edges_y[:,j,:] = canny(grayImage[:,j,:], low_threshold=MIN_CANNY_THRESHOLD, high_threshold=MAX_CANNY_THRESHOLD, sigma = std_dev_canny)
         
     for k in range(dim[2]):
-        edges_z[:,:,k] = canny(grayImage[:,:,k], low_threshold=MIN_CANNY_THRESHOLD, high_threshold=MAX_CANNY_THRESHOLD, sigma = 0.5)
+        edges_z[:,:,k] = canny(grayImage[:,:,k], low_threshold=MIN_CANNY_THRESHOLD, high_threshold=MAX_CANNY_THRESHOLD, sigma = std_dev_canny)
     
     
     for i in range(dim[0]):
@@ -372,6 +372,7 @@ def GHT(ac_num):
     
     query_edges_blurred = gaussian_filter(np.multiply(query_edges,50),sigma = std_dev_edges, order = 0)
 
+    '''
     #Sanity Check regarding number of negative edges
     neg = 0
     for i in range(query_edges_dim[0]):
@@ -381,7 +382,7 @@ def GHT(ac_num):
                     neg = neg + 1
                     
     print("Number of Negative Edges: ", neg)
-
+    '''
 
 #===================================================================================================
 #Initial Plots and Top 40 Points for Visualization Purposes
@@ -473,14 +474,18 @@ def GHT(ac_num):
     
     #Generate the edge references if they do not exist in the directory "no_Fractures"
     for reference_ac in random_reference_acs:
-        if not os.path.isfile("no_fractures/edge_" + str(std_dev_edges) + "_" + reference_ac):
+        edge_reference_name = "no_fractures/edge_references/edge" + "_es" + str(std_dev_edges) + "_min" + str(MIN_CANNY_THRESHOLD) + "_max" + str(MAX_CANNY_THRESHOLD) + "_cs" + str(std_dev_canny) + "_" + reference_ac
+        
+        
+        
+        if not os.path.isfile(edge_reference_name):
             reference_vol_pp1 = cPickle.load(open("no_fractures/" + reference_ac,"rb"),encoding = 'latin1')
             reference_vol_pp2 = np.array(reference_vol_pp1)
             
             reference_vol_edges = canny_edges_3d(reference_vol_pp2)
             reference_vol_edges_blurred = gaussian_filter(np.multiply(reference_vol_edges,50),sigma = std_dev_edges, order = 0)
             
-            cPickle.dump(reference_vol_edges_blurred, open("no_fractures/edge_" + str(std_dev_edges) + "_" + reference_ac,"wb"))
+            cPickle.dump(reference_vol_edges_blurred, open(edge_reference_name,"wb"))
             #print("no_fractures/edge_" + reference_ac)
             
     
@@ -503,7 +508,7 @@ def GHT(ac_num):
                     cross_correl_val = 0
                     
                     for reference_ac in random_reference_acs:
-                        reference_vol_pp = cPickle.load(open("no_fractures/edge_" + str(std_dev_edges) + "_" + reference_ac,"rb"),encoding = 'latin1')
+                        reference_vol_pp = cPickle.load(open(edge_reference_name),encoding = 'latin1')
                         #reference_dim is the dimension of the edge reference
                         reference_dim = np.shape(reference_vol_pp)
                         reference_vol = np.ndarray.flatten(reference_vol_pp)
@@ -539,7 +544,7 @@ def GHT(ac_num):
                         
                         
                         if (np.dot(reference_vol_norm, query_vol_norm)) < 0:
-                            print("ALERT ALERT ALERT")
+                            print("ALERT NEGATIVE DOT PRODUCT VIOLATION")
                         
                         cross_correl_val = cross_correl_val + np.dot(reference_vol_norm, query_vol_norm)
                     
@@ -647,13 +652,19 @@ if __name__ == '__main__':
     global std_dev_edges
     global MIN_CANNY_THRESHOLD
     global MAX_CANNY_THRESHOLD
+    global std_dev_canny
     global image_file_name
     global image_dir_name
     
+    #Set Hyperparameters to be validated with validation set
     std_devs = [1.0,1.5,2.0]
     std_devs_edges = [0,0.5,1.0,1.5,2.0]
-    min_cannys = [20,30,40,50,60]
-    max_cannys = [160,180,200,220,240,260]
+    #min_cannys = [20,30,40,50,60]
+    min_cannys = [50,60]
+    #max_cannys = [160,180,200,220,240,260]
+    max_cannys = [180,200,220]
+
+    std_dev_canny = 0.5
     
     for std_dev in std_devs:
         for std_dev_edges in std_devs_edges:
@@ -664,7 +675,7 @@ if __name__ == '__main__':
                     incorrect_ac_num = []
                     detection_pt_info = {}
                     
-                    image_dir_name = "accumulator_sigma" + str(std_dev) + "_edge_sigma_" + str(std_dev_edges) + "_min_canny_" + str(MIN_CANNY_THRESHOLD) + "_max_canny_" + str(MAX_CANNY_THRESHOLD)
+                    image_dir_name = "accumulator_sigma_" + str(std_dev) + "_edge_sigma_" + str(std_dev_edges) + "_min_canny_" + str(MIN_CANNY_THRESHOLD) + "_max_canny_" + str(MAX_CANNY_THRESHOLD) + "_canny_sigma_" + str(std_dev_canny)
                     
                     print("Currently on: " + image_dir_name)
                     
@@ -676,7 +687,7 @@ if __name__ == '__main__':
                     #Go through GHT for the validation set
                     for ac_num in ac_nums:
                         if ac_num in ground_truth.keys():
-                            image_file_name = ac_num + "_accumulator_sigma" + str(std_dev) + "_edge_sigma_" + str(std_dev_edges) + "_min_canny_" + str(MIN_CANNY_THRESHOLD) + "_max_canny_" + str(MAX_CANNY_THRESHOLD)
+                            image_file_name = ac_num + "_accumulator_sigma_" + str(std_dev) + "_edge_sigma_" + str(std_dev_edges) + "_min_canny_" + str(MIN_CANNY_THRESHOLD) + "_max_canny_" + str(MAX_CANNY_THRESHOLD) + "_canny_sigma_" + str(std_dev_canny)
                             #total_detections = total_detections + 1
                             
                             optimal_pt = GHT(ac_num)
@@ -705,6 +716,7 @@ if __name__ == '__main__':
                 
                     print("Min Canny Threshold: ", MIN_CANNY_THRESHOLD)
                     print("Max Canny Threshold: ", MAX_CANNY_THRESHOLD)
+                    print("Sigma Canny: ", std_dev_canny)
                     print("Sigma Accumulator: ", std_dev)
                     print("Sigma Edges: ", std_dev_edges)
                 
@@ -721,6 +733,7 @@ if __name__ == '__main__':
                     f.write("======================================\n")
                     f.write("Min Canny Threshold: %s \n" % str(MIN_CANNY_THRESHOLD))
                     f.write("Max Canny Threshold: %s \n" % str(MAX_CANNY_THRESHOLD))
+                    f.write("Sigma Canny: %s \n" % str(std_dev_canny))
                     f.write("Sigma Accumulator: %s \n" % str(std_dev))
                     f.write("Sigma Edges: %s \n\n" % str(std_dev_edges))
                     
