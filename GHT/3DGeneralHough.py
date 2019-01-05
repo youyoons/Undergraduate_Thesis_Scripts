@@ -502,13 +502,15 @@ def GHT(ac_num):
         heat_map = np.zeros((9,9,3))
         print("The point being investigated is: ", pt)
 
-        for i in range(-4,5):
-            for j in range(-4,5):
+        
+
+        for i in range(-dicom_dwn4x_pp_dim[0]//32,dicom_dwn4x_pp_dim[0]//32 + 1):
+            for j in range(-dicom_dwn4x_pp_dim[1]//32,dicom_dwn4x_pp_dim[1]//32 + 1):
                 for k in range(-1,2):
                     cross_correl_val = 0
                     
                     for reference_ac in random_reference_acs:
-                        reference_vol_pp = cPickle.load(open(edge_reference_name),encoding = 'latin1')
+                        reference_vol_pp = cPickle.load(open(edge_reference_name,"rb"),encoding = 'latin1')
                         #reference_dim is the dimension of the edge reference
                         reference_dim = np.shape(reference_vol_pp)
                         reference_vol = np.ndarray.flatten(reference_vol_pp)
@@ -559,7 +561,12 @@ def GHT(ac_num):
         
         #Append heat_map
         heat_maps.append(heat_map)
-                    
+    
+    #Set Detection Threshold for Specific Accession Number
+    global detection_threshold
+    detection_threshold = (dicom_dwn4x_pp_dim[0]//64)*(dicom_dwn4x_pp_dim[1]//64)*3
+    #print(detection_threshold)
+    
     print("The Final Detection point is: ",optimal_pt)
 
   
@@ -595,6 +602,11 @@ def GHT(ac_num):
     
     
     #Save Figure
+    #print(os.getcwd())
+    print(image_dir_name)
+    #print(image_file_name)
+    #plt.savefig(os.path.join(image_dir_name, image_file_name + ".png"))
+    #print(os.path.join(image_dir_name, image_file_name + ".png"))
     plt.savefig(image_dir_name + "/" + image_file_name + ".png")
     
     return optimal_pt
@@ -658,11 +670,12 @@ if __name__ == '__main__':
     
     #Set Hyperparameters to be validated with validation set
     std_devs = [1.0,1.5,2.0]
-    std_devs_edges = [0,0.5,1.0,1.5,2.0]
+    #std_devs_edges = [0,0.5,1.0,1.5,2.0]
+    std_devs_edges = [0]
     #min_cannys = [20,30,40,50,60]
-    min_cannys = [50,60]
+    min_cannys = [30,40,50,60]
     #max_cannys = [160,180,200,220,240,260]
-    max_cannys = [180,200,220]
+    max_cannys = [160,180,200,220]
 
     std_dev_canny = 0.5
     
@@ -675,7 +688,7 @@ if __name__ == '__main__':
                     incorrect_ac_num = []
                     detection_pt_info = {}
                     
-                    image_dir_name = "accumulator_sigma_" + str(std_dev) + "_edge_sigma_" + str(std_dev_edges) + "_min_canny_" + str(MIN_CANNY_THRESHOLD) + "_max_canny_" + str(MAX_CANNY_THRESHOLD) + "_canny_sigma_" + str(std_dev_canny)
+                    image_dir_name = "accumulator_sigma_" + str(std_dev) + "_edge_sigma_" + str(std_dev_edges) + "_min_canny_" + str(MIN_CANNY_THRESHOLD) + "_max_canny_" + str(MAX_CANNY_THRESHOLD)
                     
                     print("Currently on: " + image_dir_name)
                     
@@ -687,7 +700,7 @@ if __name__ == '__main__':
                     #Go through GHT for the validation set
                     for ac_num in ac_nums:
                         if ac_num in ground_truth.keys():
-                            image_file_name = ac_num + "_accumulator_sigma_" + str(std_dev) + "_edge_sigma_" + str(std_dev_edges) + "_min_canny_" + str(MIN_CANNY_THRESHOLD) + "_max_canny_" + str(MAX_CANNY_THRESHOLD) + "_canny_sigma_" + str(std_dev_canny)
+                            image_file_name = ac_num + "_accumulator_sigma_" + str(std_dev) + "_edge_sigma_" + str(std_dev_edges)  + "_canny_sigma_" + str(std_dev_canny) + "_min_canny_" + str(MIN_CANNY_THRESHOLD) + "_max_canny_" + str(MAX_CANNY_THRESHOLD)
                             #total_detections = total_detections + 1
                             
                             optimal_pt = GHT(ac_num)
@@ -698,7 +711,7 @@ if __name__ == '__main__':
                             error = error + curr_error
                             
                             #Can adjust threshold for correct detection accordingly
-                            if curr_error <= 12:
+                            if curr_error <= detection_threshold:
                                 correct_detections = correct_detections + 1
                             else:
                                 incorrect_ac_num.append(ac_num)
