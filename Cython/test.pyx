@@ -1,11 +1,14 @@
 import datetime
 import numpy as np
 cimport numpy as np
+import cython
 from collections import defaultdict
 
-#def get_accum(np.ndarray[long, ndim=3] phi, np.ndarray[long, ndim=3] psi, np.ndarray[double, ndim=3] edges, r_table):
+#cpdef get_accum(np.ndarray[long, ndim=3] phi, np.ndarray[long, ndim=3] psi, np.ndarray[double, ndim=3] edges, r_table):
 def get_accum(phi, psi, edges, r_table):
     t1 = datetime.datetime.now()
+    
+    #cdef int accum_i = 0
     accum_i = 0
     accum_j = 0
     accum_k = 0
