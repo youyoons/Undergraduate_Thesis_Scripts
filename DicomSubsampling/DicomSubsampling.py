@@ -129,7 +129,7 @@ def generate_pkl(series_path, ac_num, save_orig=False, from_scratch=True):
             raw_dicom_3d = cPickle.load(open("no_fractures/dicom_3d_" + ac_num + ".pkl","rb"),encoding = 'latin1')
     
     if save_orig:
-        cPickle.dump(raw_dicom_3d, open("no_fractures/dicom_3d_" + ac_num + ".pkl", "wb"))
+        cPickle.dump(raw_dicom_3d, open("no_fractures/dicom_3d_" + ac_num + ".pkl", "wb"), protocol = 2)
     
     raw_dicom_3d_dim = np.shape(raw_dicom_3d)    
 
@@ -151,7 +151,7 @@ def generate_pkl(series_path, ac_num, save_orig=False, from_scratch=True):
     print("Dimension of Down-Sized DICOM: ", dicom_3d_4x_dim)
     
     #Save the final downsized image as pkl file
-    cPickle.dump(dicom_3d_4x_downsized, open("no_fractures/dicom_3d_" + ac_num + "_dwn4x.pkl","wb"))
+    cPickle.dump(dicom_3d_4x_downsized, open("no_fractures/dicom_3d_" + ac_num + "_dwn4x.pkl","wb"), protocol = 2)
     
     return None
 
@@ -225,7 +225,7 @@ if __name__ == '__main__':
             #Get volume of interest
             reference = volumeOfInterest(downsized_dicom[x1:x2,y1:y2,z1:z2])
         
-            #cPickle.dump(reference, open("no_fractures/dicom_3d_" + ac_num + "_reference.pkl", "wb"))
+            #cPickle.dump(reference, open("no_fractures/dicom_3d_" + ac_num + "_reference.pkl", "wb"), protocol = 2)
         
         except:
             print("Cannot find " + ac_num)
