@@ -1,9 +1,7 @@
 import os
 from multiprocessing import Pool
-import defs
 import time
 
-os.chdir("C:\\Users\\Yoonsun You\\Documents")
 
 t = time.time()
 
@@ -16,15 +14,14 @@ def g(x):
     return counter
 
 if __name__ == '__main__':
-    '''
-    with Pool(10) as p:
+   
+    p = Pool(processes = 10)
 
-        results = p.map(defs.f,[300,320,340,360,380,400,420,440,460,480])
-        print(results)
-    
+    results = p.map(g,[300,320,340,360,380,400,420,440,460,480])
+    print(results)
     print(time.time() - t)
-    '''
-
+    
+    
     t = time.time()
     
     a = g(300)
