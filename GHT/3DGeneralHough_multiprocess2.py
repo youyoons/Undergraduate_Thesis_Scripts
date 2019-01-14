@@ -656,7 +656,7 @@ if __name__ == '__main__':
 #Read in ground truth values from the ground_truth_detection_pts.xlsx spreadsheet
 #===================================================================================================
     #Get the detection results for the validation set
-    book = openpyxl.load_workbook("../GHT/ground_truth_detection_pts.xlsx")
+    book = openpyxl.load_workbook("../GHT/ground_truth_detection_pts_all.xlsx")
     sheet = book.active
     row_count = sheet.max_row
     
@@ -718,15 +718,15 @@ if __name__ == '__main__':
                     #Get the ac_num to put into multi processing
                     multi_proc_ac_num = []
                     
-                    for ac_num in ac_nums[0:10]:
+                    for ac_num in ac_nums:
                         if ac_num in ground_truth.keys():
                             multi_proc_ac_num.append(ac_num)
                     
                     print(multi_proc_ac_num)
                     
                     #Get optimal points through multi processing
-                    p = Pool(processes = 10)
-                    
+                    p = Pool(processes = 90)
+               
                     optimal_pts = p.map(GHT,multi_proc_ac_num)
                     
                     optimal_pts_dict = {}
@@ -737,7 +737,7 @@ if __name__ == '__main__':
                     print(optimal_pts_dict)
 
                     #Go through GHT for the validation set
-                    for ac_num in ac_nums[0:10]:
+                    for ac_num in ac_nums:
                         if ac_num in ground_truth.keys():
                             
                             optimal_pt = optimal_pts_dict[ac_num]
