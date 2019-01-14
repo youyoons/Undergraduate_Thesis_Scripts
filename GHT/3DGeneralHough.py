@@ -14,6 +14,7 @@ import datetime
 import openpyxl
 import random
 import cython
+#import tkinter
 try:
     import cPickle
 except ImportError:
@@ -307,7 +308,10 @@ def GHT(ac_num):
     
     
     #Open Downsized Pickle File Containing DICOM Scan
-    dicom_dwn4x_pp = cPickle.load(open("no_fractures/dicom_3d_" + ac_num + "_dwn4x.pkl","rb"),encoding = 'latin1')
+    try:
+        dicom_dwn4x_pp = cPickle.load(open("no_fractures/dicom_3d_" + ac_num + "_dwn4x.pkl","rb"),encoding = 'latin1')
+    except:
+        dicom_dwn4x_pp = cPickle.load(open("no_fractures/dicom_3d_" + ac_num + "_dwn4x.pkl","rb"))
     dicom_dwn4x_pp_dim = np.shape(dicom_dwn4x_pp)
     print("Size of Downsized Dicom Input: ", dicom_dwn4x_pp_dim)
 
@@ -346,7 +350,10 @@ def GHT(ac_num):
         print("Current Reference: ", reference_ac)
         
         #Open up the Reference that is used as the reference image
-        reference = cPickle.load(open("no_fractures/" + reference_ac,"rb"),encoding = 'latin1')
+        try:
+            reference = cPickle.load(open("no_fractures/" + reference_ac,"rb"),encoding = 'latin1')
+        except:
+            reference = cPickle.load(open("no_fractures/" + reference_ac,"rb"))
         #print("Size of Reference Image: ", np.shape(reference))
 
         detect_s = general_hough_closure(reference)
@@ -479,7 +486,10 @@ def GHT(ac_num):
         
         
         if not os.path.isfile(edge_reference_name):
-            reference_vol_pp1 = cPickle.load(open("no_fractures/" + reference_ac,"rb"),encoding = 'latin1')
+            try:
+                reference_vol_pp1 = cPickle.load(open("no_fractures/" + reference_ac,"rb"),encoding = 'latin1')
+            except:
+                reference_vol_pp1 = cPickle.load(open("no_fractures/" + reference_ac,"rb"))
             reference_vol_pp2 = np.array(reference_vol_pp1)
             
             reference_vol_edges = canny_edges_3d(reference_vol_pp2)
@@ -510,7 +520,10 @@ def GHT(ac_num):
                     cross_correl_val = 0
                     
                     for reference_ac in random_reference_acs:
-                        reference_vol_pp = cPickle.load(open(edge_reference_name,"rb"),encoding = 'latin1')
+                        try:
+                            reference_vol_pp = cPickle.load(open(edge_reference_name,"rb"),encoding = 'latin1')
+                        except:
+                            reference_vol_pp = cPickle.load(open(edge_reference_name,"rb"))
                         #reference_dim is the dimension of the edge reference
                         reference_dim = np.shape(reference_vol_pp)
                         reference_vol = np.ndarray.flatten(reference_vol_pp)
@@ -619,8 +632,9 @@ def GHT(ac_num):
 #===================================================================================================
 #===================================================================================================
 if __name__ == '__main__':
-    os.chdir("C:\\Users\\yoons\\Documents\\4th Year Semester 2\\ESC499 - Thesis\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
-    
+    #os.chdir("C:\\Users\\yoons\\Documents\\4th Year Semester 2\\ESC499 - Thesis\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
+    os.chdir("../DicomSubsampling")    
+
     plt.close()
 #===================================================================================================
 #Process the accession numbers that are present and put it into a list
