@@ -121,125 +121,6 @@ def accumulate_gradients(r_table, grayImage):
                     accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1 
   
     
-        
-    '''
-    for i in range(edges_dim[0]//2):
-        for j in range(edges_dim[1]//2):
-            for k in range(edges_dim[2]):
-                if edges[i,j,k]:
-                    for r in r_table[(int(phi[i,j,k]), int(psi[i,j,k]))]:
-                        accum_i, accum_j, accum_k = i+r[0], j+r[1], k+r[2]
-                        if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
-                            accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1
-
-    for i in range(edges_dim[0]//2):
-        for j in range(edges_dim[1]//2,edges_dim[1]):
-            for k in range(edges_dim[2]):
-                if edges[i,j,k]:
-                    for r in r_table[(int(phi[i,j,k]), int(psi[i,j,k]))]:
-                        accum_i, accum_j, accum_k = i+r[0], j+r[1], k+r[2]
-                        if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
-                            accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1
-           
-
-    for i in range(edges_dim[0]//2,edges_dim[0]):
-        for j in range(edges_dim[1]//2):
-            for k in range(edges_dim[2]):
-                if edges[i,j,k]:
-                    for r in r_table[(int(phi[i,j,k]), int(psi[i,j,k]))]:
-                        accum_i, accum_j, accum_k = i+r[0], j+r[1], k+r[2]
-                        if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
-                            accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1    
-
-    for i in range(edges_dim[0]//2,edges_dim[0]):
-        for j in range(edges_dim[1]//2,edges_dim[1]):
-            for k in range(edges_dim[2]):
-                if edges[i,j,k]:
-                    for r in r_table[(int(phi[i,j,k]), int(psi[i,j,k]))]:
-                        accum_i, accum_j, accum_k = i+r[0], j+r[1], k+r[2]
-                        if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
-                            accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1                                
-    '''
-    
-    
-    '''
-    #Top Half of Edges==========================================================================
-    for (i,j,k),value in np.ndenumerate(edges[0:edges_dim[0]//2,0:edges_dim[1]//2,0:edges_dim[2]//2]):
-        if value:
-            for r in r_table[(int(phi[i,j,k]), int(psi[i,j,k]))]:
-                #iterations = iterations + 1
-                accum_i, accum_j, accum_k = i+r[0], j+r[1], k+r[2]
-                if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
-                    accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1
-                    
-    for (i,j,k),value in np.ndenumerate(edges[0:edges_dim[0]//2,edges_dim[1]//2: edges_dim[1],0:edges_dim[2]//2]):
-        if value:
-            j = j + edges_dim[1]//2
-            for r in r_table[(int(phi[i,j,k]), int(psi[i,j,k]))]:
-                accum_i, accum_j, accum_k = i+r[0], j+r[1], k+r[2]
-                if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
-                    accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1
-                    
-                    
-    for (i,j,k),value in np.ndenumerate(edges[edges_dim[0]//2: edges_dim[0],0:edges_dim[1]//2,0:edges_dim[2]//2]):
-        if value:
-            i = i + edges_dim[0]//2
-            for r in r_table[(int(phi[i,j,k]), int(psi[i,j,k]))]:
-                accum_i, accum_j, accum_k = i+r[0], j+r[1], k+r[2]
-                if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
-                    accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1
-    
-    for (i,j,k),value in np.ndenumerate(edges[edges_dim[0]//2: edges_dim[0],edges_dim[1]//2: edges_dim[1],0:edges_dim[2]//2]):
-        if value:
-            i = i + edges_dim[0]//2
-            j = j + edges_dim[1]//2
-            for r in r_table[(int(phi[i,j,k]), int(psi[i,j,k]))]:
-                accum_i, accum_j, accum_k = i+r[0], j+r[1], k+r[2]
-                if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
-                    accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1
-    
-    #Bottom Half of Edges=======================================================================
-    for (i,j,k),value in np.ndenumerate(edges[0:edges_dim[0]//2,0:edges_dim[1]//2,edges_dim[2]//2:edges_dim[2]]):
-        if value:
-            k = k + edges_dim[2]//2
-            for r in r_table[(int(phi[i,j,k]), int(psi[i,j,k]))]:
-                accum_i, accum_j, accum_k = i+r[0], j+r[1], k+r[2]
-                if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
-                    accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1
-                    
-    for (i,j,k),value in np.ndenumerate(edges[0:edges_dim[0]//2,edges_dim[1]//2: edges_dim[1],edges_dim[2]//2:edges_dim[2]]):
-
-        if value:
-            j = j + edges_dim[1]//2
-            k = k + edges_dim[2]//2
-            for r in r_table[(int(phi[i,j,k]), int(psi[i,j,k]))]:
-                accum_i, accum_j, accum_k = i+r[0], j+r[1], k+r[2]
-                if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
-                    accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1
-                    
-                    
-    for (i,j,k),value in np.ndenumerate(edges[edges_dim[0]//2: edges_dim[0],0:edges_dim[1]//2,edges_dim[2]//2 :edges_dim[2]]):
-
-        if value:
-            i = i + edges_dim[0]//2
-            k = k + edges_dim[2]//2
-            for r in r_table[(int(phi[i,j,k]), int(psi[i,j,k]))]:
-                accum_i, accum_j, accum_k = i+r[0], j+r[1], k+r[2]
-                if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
-                    accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1
-    
-    for (i,j,k),value in np.ndenumerate(edges[edges_dim[0]//2: edges_dim[0],edges_dim[1]//2: edges_dim[1],edges_dim[2]//2:edges_dim[2]]):
-
-        if value:
-            i = i + edges_dim[0]//2
-            j = j + edges_dim[1]//2
-            k = k + edges_dim[2]//2    
-            for r in r_table[(int(phi[i,j,k]), int(psi[i,j,k]))]:
-                accum_i, accum_j, accum_k = i+r[0], j+r[1], k+r[2]
-                if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
-                    accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1    
-    '''
-
     print(datetime.datetime.now())  
     
     #Approximately 400-550k iterations
@@ -382,17 +263,6 @@ def GHT(ac_num):
     
     query_edges_blurred = gaussian_filter(np.multiply(query_edges,50),sigma = std_dev_edges, order = 0)
 
-    '''
-    #Sanity Check regarding number of negative edges
-    neg = 0
-    for i in range(query_edges_dim[0]):
-        for j in range(query_edges_dim[1]):
-            for k in range(query_edges_dim[2]):
-                if query_edges_blurred[i,j,k] < 0:
-                    neg = neg + 1
-                    
-    print("Number of Negative Edges: ", neg)
-    '''
 
 #===================================================================================================
 #Initial Plots and Top 40 Points for Visualization Purposes
@@ -477,7 +347,7 @@ def GHT(ac_num):
 #Normalized Cross Correlation and Heat Map Generation
 #===================================================================================================
     #Sliding reference across volume around detected points to find accurate point
-    optimal_pt = [0,0]
+    #optimal_pt = [0,0]
     max_cross_correl_val = -float('inf')
     
     heat_maps = []
@@ -498,90 +368,18 @@ def GHT(ac_num):
             reference_vol_edges = canny_edges_3d(reference_vol_pp2)
             reference_vol_edges_blurred = gaussian_filter(np.multiply(reference_vol_edges,50),sigma = std_dev_edges, order = 0)
             
-            cPickle.dump(reference_vol_edges_blurred, open(edge_reference_name,"wb"))
+            cPickle.dump(reference_vol_edges_blurred, open(edge_reference_name,"wb"), protocol = 2)
             #print("no_fractures/edge_" + reference_ac)
-            
+
     
-    if len(nms_pts) > 1:
-        low_pt = nms_pts[0]
-        
-        for pt in nms_pts:
-            if pt[0] > low_pt[0]:
-                low_pt = pt
-        
-        nms_pts.remove(low_pt)
-        
+    optimal_pt = [0,0.0]
+    min_xpt = float('inf')
+    
     for pt in nms_pts:
-        heat_map = np.zeros((9,9,3))
-        print("The point being investigated is: ", pt)
-
-        
-
-        for i in range(-dicom_dwn4x_pp_dim[0]//32,dicom_dwn4x_pp_dim[0]//32 + 1):
-            for j in range(-dicom_dwn4x_pp_dim[1]//32,dicom_dwn4x_pp_dim[1]//32 + 1):
-                for k in range(-1,2):
-                    cross_correl_val = 0
-                    
-                    for reference_ac in random_reference_acs:
-                        try:
-                            reference_vol_pp = cPickle.load(open(edge_reference_name,"rb"),encoding = 'latin1')
-                        except:
-                            reference_vol_pp = cPickle.load(open(edge_reference_name,"rb"))
-                        #reference_dim is the dimension of the edge reference
-                        reference_dim = np.shape(reference_vol_pp)
-                        reference_vol = np.ndarray.flatten(reference_vol_pp)
-                        
-                        #Get bounds to compare on the query image
-                        x1 = pt[0] - reference_dim[0]//2 + i
-                        x2 = x1 + reference_dim[0]
-                        
-                        y1 = pt[1] - reference_dim[1]//2 + j
-                        y2 = y1 + reference_dim[1]
-                        
-                        z1 = pt[2] - reference_dim[2]//2 + k
-                        z2 = z1 + reference_dim[2]
-                        
-                        #Use the Canny edge version of the query image for cross correlation
-                        query_vol_pp = np.array(query_edges_blurred[x1:x2,y1:y2,z1:z2])
-                        query_vol = np.ndarray.flatten(query_vol_pp)
- 
-                        query_dim = np.shape(query_vol_pp)
-                        
-                        #Exit current slide location if out of bounds
-                        if x1 < 0 or y1 < 0 or z1 < 0:
-                            break
-                        
-                        if x2 > query_edges_dim[0] or y2 > query_edges_dim[1] or z2 > query_edges_dim[2]:
-                            break
-
-                        #Use norms to normalize the vectors for cross-correlation
-                        #print(np.linalg.norm(reference_vol))
-                        #print(np.linalg.norm(query_vol))
-                        reference_vol_norm = reference_vol/np.linalg.norm(reference_vol)
-                        query_vol_norm = query_vol/np.linalg.norm(query_vol)
-                        
-                        
-                        if (np.dot(reference_vol_norm, query_vol_norm)) < 0:
-                            print("ALERT NEGATIVE DOT PRODUCT VIOLATION")
-                        
-                        cross_correl_val = cross_correl_val + np.dot(reference_vol_norm, query_vol_norm)
-                    
-                    heat_map[i+4,j+4,k+1] = cross_correl_val
-                    if cross_correl_val > max_cross_correl_val:
-                        #print(max_cross_correl_val)
-                        max_cross_correl_val = cross_correl_val
-                        #print("The cross correlation value is: ", cross_correl_val)
-                        optimal_pt = [pt[0]+i,pt[1]+j, pt[2]+k]
-                        #print("The optimal point currently is: ", optimal_pt)
-        
-        
-        #Append heat_map
-        heat_maps.append(heat_map)
+        if pt[0] > min_xpt:
+            min_xpt = pt[0]
+            optimal_pt = pt[0:3]
     
-    #Set Detection Threshold for Specific Accession Number
-    global detection_threshold
-    detection_threshold = (dicom_dwn4x_pp_dim[0]//64)*(dicom_dwn4x_pp_dim[1]//64)*3
-    #print(detection_threshold)
     
     print("The Final Detection point is: ",optimal_pt)
 
@@ -602,20 +400,7 @@ def GHT(ac_num):
     plt.scatter(optimal_pt[1],optimal_pt[0], marker='X', color='m')
     
     
-    #Add plot for heat map
-    for i in range(2):
-        try:
-            heat_map = heat_maps[i]
-            heat_map_norm = heat_map
-            fig.add_subplot(2,4,7+i)
-            plt.title('Heat Map')
-            plt.imshow(heat_map_norm[:,:,1])
-        except:
-            pass
-    
-    #plt.show()
-    
-    
+
     
     #Save Figure
     #print(os.getcwd())
