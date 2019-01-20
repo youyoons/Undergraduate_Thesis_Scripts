@@ -14,6 +14,7 @@ import datetime
 import openpyxl
 import random
 import cython
+from multiprocessing import Pool
 #import tkinter
 try:
     import cPickle
@@ -296,6 +297,8 @@ def GHT(ac_num):
 #===================================================================================================
     #Get the references that will be used for Cervical Spine Vertebrae Detection
     reference_acs = []
+
+    image_file_name = ac_num + "_accumulator_sigma_" + str(std_dev) + "_edge_sigma_" + str(std_dev_edges)  + "_canny_sigma_" + str(std_dev_canny) + "_min_canny_" + str(MIN_CANNY_THRESHOLD) + "_max_canny_" + str(MAX_CANNY_THRESHOLD)
 
     for file_name in os.listdir("no_fractures"):
         #The name should have "reference" in it but no "edge" in it
@@ -653,7 +656,7 @@ if __name__ == '__main__':
 #Read in ground truth values from the ground_truth_detection_pts.xlsx spreadsheet
 #===================================================================================================
     #Get the detection results for the validation set
-    book = openpyxl.load_workbook("../GHT/ground_truth_detection_pts.xlsx")
+    book = openpyxl.load_workbook("../GHT/ground_truth_detection_pts_all.xlsx")
     sheet = book.active
     row_count = sheet.max_row
     
@@ -711,13 +714,33 @@ if __name__ == '__main__':
                     else:
                         continue
                     
+
+                    #Get the ac_num to put into multi processing
+                    multi_proc_ac_num = []
+                    
+                    for ac_num in ac_nums:
+                        if ac_num in ground_truth.keys():
+                            multi_proc_ac_num.append(ac_num)
+                    
+                    print(multi_proc_ac_num)
+                    
+                    #Get optimal points through multi processing
+                    p = Pool(processes = 90)
+               
+                    optimal_pts = p.map(GHT,multi_proc_ac_num)
+                    
+                    optimal_pts_dict = {}
+                    #Put into dictionary
+                    for i in range(len(multi_proc_ac_num)):
+                        optimal_pts_dict[multi_proc_ac_num[i]] = optimal_pts[i]
+                    
+                    print(optimal_pts_dict)
+
                     #Go through GHT for the validation set
                     for ac_num in ac_nums:
                         if ac_num in ground_truth.keys():
-                            image_file_name = ac_num + "_accumulator_sigma_" + str(std_dev) + "_edge_sigma_" + str(std_dev_edges)  + "_canny_sigma_" + str(std_dev_canny) + "_min_canny_" + str(MIN_CANNY_THRESHOLD) + "_max_canny_" + str(MAX_CANNY_THRESHOLD)
-                            #total_detections = total_detections + 1
                             
-                            optimal_pt = GHT(ac_num)
+                            optimal_pt = optimal_pts_dict[ac_num]
                             print("Detected Optimal Point: ", optimal_pt)
                             print("Ground Truth Point: ", ground_truth[ac_num])
                         
@@ -725,7 +748,7 @@ if __name__ == '__main__':
                             error = error + curr_error
                             
                             #Can adjust threshold for correct detection accordingly
-                            if curr_error <= detection_threshold:
+                            if curr_error <= 12.0:
                                 correct_detections = correct_detections + 1
                             else:
                                 incorrect_ac_num.append(ac_num)
