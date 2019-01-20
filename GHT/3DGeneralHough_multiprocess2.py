@@ -594,6 +594,21 @@ if __name__ == '__main__':
                     
                     f.close()
                     
+                    #Create Excel Spreadsheet with Trial Detection Information (for segmenting in next step)
+                    wb = openpyxl.Workbook()
+                    dest_filename = '../GHT/detection_pts_trial_' + str(MIN_CANNY_THRESHOLD) + '_' + str(MAX_CANNY_THRESHOLD) + '_' 
+                    + str(std_dev_canny) + '_' + str(std_dev) + '_' + str(std_dev_edges) + '.xlsx'
+                    
+                    ws1 = wb.active
+                    ws1.append(['ac_num','x','y','z']
+                               
+                    for key in detection_pt_info.keys():
+                         detected_pt = detection_pt_info[key][0]
+                         row = [key, detected_pt[0], detected_pt[1], detected_pt[2]]
+                         ws1.append(row)
+                    wb.save(dest_filename) 
+                         
+                    
                     
 #===================================================================================================
 #===================================================================================================
