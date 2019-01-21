@@ -600,7 +600,7 @@ if __name__ == '__main__':
                     + str(std_dev_canny) + '_' + str(std_dev) + '_' + str(std_dev_edges) + '.xlsx'
                     
                     ws1 = wb.active
-                    ws1.append(['ac_num','x','y','z']
+                    ws1.append(['ac_num','x','y','z'])
                                
                     for key in detection_pt_info.keys():
                          detected_pt = detection_pt_info[key][0]
