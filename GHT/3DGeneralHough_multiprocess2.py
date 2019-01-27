@@ -200,10 +200,10 @@ def GHT(ac_num):
     print("Size of Downsized Dicom Input: ", dicom_dwn4x_pp_dim)
 
     #Specify Region of Interest
-    x1 = 5
-    x2 = 65
-    y1 = 15
-    y2 = 80
+    x1 = 0
+    x2 = 60
+    y1 = 17
+    y2 = 85
 
     
     #Get specific region of focus (based on prior information)
