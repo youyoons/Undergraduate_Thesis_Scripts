@@ -43,17 +43,17 @@ def cspine_segment(ac_num, detected_pt):
 
         if y <= 16:
             y1 = 0
-            y2 = 32
+            y2 = 40
         else:
             y1 = y - 16
-            y2 = y + 16
+            y2 = y + 24
 
-        if z <= 12:
+        if z <= 14:
             z1 = 0
-            z2 = 24
+            z2 = 28
         else:
-            z1 = z - 12
-            z2 = z + 12
+            z1 = z - 14
+            z2 = z + 14
 
         segmented_dicom = dicom_dwn4x[x1:x2,y1:y2,z1:z2]
 
@@ -77,26 +77,31 @@ def visualize_segmentation(ac_num):
 
     segment_dim = np.shape(cspine_segment)
     
-
+    print("SEGMENT DIMENSION**********************")
+    print(segment_dim)
 
     #Plotting the Segmentation Result
     #Frontal
-    fig = plt.figure(figsize = (24,8))
+    fig = plt.figure(figsize = (60,5))
     plt.gray()
 
-    for i in range(1,6):    
-        fig.add_subplot(1,5,i)
-        plt.imshow(cspine_segment[:,:,int(segment_dim[2]/6*i)])
+    for i in range(segment_dim[2]//2):  
+        print(2*i+1)  
+        fig.add_subplot(1,segment_dim[2]//2,i+1)
+        #plt.imshow(cspine_segment[:,:,int(segment_dim[2]/6*i)])
+        plt.imshow(cspine_segment[:,:,2*i+1])
     
     #Side 
-    fig2 = plt.figure(figsize = (20,10))
+    fig2 = plt.figure(figsize = (60,5))
     plt.gray()
 
-    for i in range(1,6):    
-        fig2.add_subplot(1,5,i)
-        plt.imshow(cspine_segment[:,int(segment_dim[1]/6*i),:])
+    for i in range(segment_dim[1]//2): 
+        print(2*i)   
+        fig2.add_subplot(1,segment_dim[1]//2,i+1)
+        plt.imshow(cspine_segment[:,i*2+1,:])
     
     plt.show()
+   
 
 if __name__ == '__main__':
 
@@ -126,7 +131,7 @@ if __name__ == '__main__':
     print(detected_points)
 
     #A sample visualization
-    visualize_segmentation('5826444')
+    #visualize_segmentation('5826444')
     visualize_segmentation('9020776')
 
 
