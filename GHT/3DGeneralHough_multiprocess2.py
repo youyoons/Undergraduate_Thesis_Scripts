@@ -510,8 +510,9 @@ if __name__ == '__main__':
                     print(multi_proc_ac_num)
                     
                     #Get optimal points through multi processing
-                    p = Pool(processes = 90)
+                    p = Pool(processes = 25)
                
+                    #Run GHT *********************************
                     optimal_pts = p.map(GHT,multi_proc_ac_num)
                     
                     optimal_pts_dict = {}
