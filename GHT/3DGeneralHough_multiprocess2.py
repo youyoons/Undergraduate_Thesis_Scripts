@@ -15,7 +15,7 @@ import openpyxl
 import random
 import cython
 from multiprocessing import Pool
-#import tkinter
+
 try:
     import cPickle
 except ImportError:
@@ -120,7 +120,7 @@ def accumulate_gradients(r_table, grayImage):
                 if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
                     accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1 
   
-    
+ 
     print(datetime.datetime.now())  
     
     #Approximately 400-550k iterations
@@ -221,7 +221,7 @@ def GHT(ac_num):
     
     #Randomly choose 5 references
     #random_reference_acs = []
-    random_reference_acs = reference_acs[0:5]
+    random_reference_acs = reference_acs
 
     
     #while len(random_reference_acs) < 5: 
@@ -267,6 +267,8 @@ def GHT(ac_num):
 #===================================================================================================
 #Initial Plots and Top 40 Points for Visualization Purposes
 #===================================================================================================
+    plot_z = ground_truth[ac_num][2]
+
     #Plot up to top 40 points
     fig = plt.figure(num = image_file_name, figsize = (24,12))
     plt.gray()
@@ -274,24 +276,29 @@ def GHT(ac_num):
     fig.suptitle(image_file_name)
 
     fig.add_subplot(2,4,1)
-    plt.title('Query Image')
-    plt.imshow(dicom_dwn4x_pp[:,:,dicom_dwn4x_pp_dim[2]//2])
+    plt.title('Query Image [Slice: ' + str(plot_z) + ']')
+    #plt.imshow(dicom_dwn4x_pp[:,:,dicom_dwn4x_pp_dim[2]//2])
+    plt.imshow(dicom_dwn4x_pp[:,:,plot_z])
     
     fig.add_subplot(2,4,2)
     plt.title('Query Image Edges')
-    plt.imshow(query_edges[:,:,dicom_dwn4x_pp_dim[2]//2])
+    #plt.imshow(query_edges[:,:,dicom_dwn4x_pp_dim[2]//2])
+    plt.imshow(query_edges[:,:,plot_z])
     
     fig.add_subplot(2,4,3)
     plt.title('Query Image Edges Blurred')
-    plt.imshow(query_edges_blurred[:,:,dicom_dwn4x_pp_dim[2]//2])
+    #plt.imshow(query_edges_blurred[:,:,dicom_dwn4x_pp_dim[2]//2])
+    plt.imshow(query_edges_blurred[:,:,plot_z])
     
     fig.add_subplot(2,4,4)
     plt.title('Final Accumulator')
-    plt.imshow(final_accumulator[:,:,dicom_dwn4x_dim[2]//2])
+    #plt.imshow(final_accumulator[:,:,dicom_dwn4x_dim[2]//2])
+    plt.imshow(final_accumulator[:,:,plot_z])
      
     fig.add_subplot(2,4,5)
     plt.title('Detection of Top 40 Points')
-    plt.imshow(dicom_dwn4x_pp[:,:,dicom_dwn4x_dim[2]//2])
+    #plt.imshow(dicom_dwn4x_pp[:,:,dicom_dwn4x_dim[2]//2])
+    plt.imshow(dicom_dwn4x_pp[:,:,plot_z])
 
 
     #Get top 40 results that can be filtered out
@@ -320,7 +327,8 @@ def GHT(ac_num):
     #Plot NMS points
     fig.add_subplot(2,4,6)
     plt.title('Non-Maximal Suppression and Optimal Points')
-    plt.imshow(dicom_dwn4x_pp[:,:,dicom_dwn4x_pp_dim[2]//2])
+    #plt.imshow(dicom_dwn4x_pp[:,:,dicom_dwn4x_pp_dim[2]//2])
+    plt.imshow(dicom_dwn4x_pp[:,:,plot_z])
 
     #Perform non-maximal suppression
     nms_pts = []
@@ -363,24 +371,107 @@ def GHT(ac_num):
                 reference_vol_pp1 = cPickle.load(open("no_fractures/" + reference_ac,"rb"),encoding = 'latin1')
             except:
                 reference_vol_pp1 = cPickle.load(open("no_fractures/" + reference_ac,"rb"))
+            
             reference_vol_pp2 = np.array(reference_vol_pp1)
             
             reference_vol_edges = canny_edges_3d(reference_vol_pp2)
             reference_vol_edges_blurred = gaussian_filter(np.multiply(reference_vol_edges,50),sigma = std_dev_edges, order = 0)
             
-            cPickle.dump(reference_vol_edges_blurred, open(edge_reference_name,"wb"), protocol = 2)
+            cPickle.dump(reference_vol_edges_blurred, open(edge_reference_name,"wb"),protocol = 2)
             #print("no_fractures/edge_" + reference_ac)
+            
+    '''
+    if len(nms_pts) > 1:
+        low_pt = nms_pts[0]
+        
+        for pt in nms_pts:
+            if pt[0] > low_pt[0]:
+                low_pt = pt
+        
+        nms_pts.remove(low_pt)
+    '''
+    optimal_pt = [0,0,0]
+    min_xdir = float('Inf')
+ 
 
-    
-    optimal_pt = [0,0.0]
-    min_xpt = float('inf')
-    
     for pt in nms_pts:
-        if pt[0] > min_xpt:
-            min_xpt = pt[0]
+        if pt[0] < min_xdir:
+            min_xdir = pt[0]
             optimal_pt = pt[0:3]
+    '''
+    for pt in nms_pts:
+        heat_map = np.zeros((9,9,3))
+        print("The point being investigated is: ", pt)
+
+        
+
+        for i in range(-dicom_dwn4x_pp_dim[0]//32,dicom_dwn4x_pp_dim[0]//32 + 1):
+            for j in range(-dicom_dwn4x_pp_dim[1]//32,dicom_dwn4x_pp_dim[1]//32 + 1):
+                for k in range(-1,2):
+                    cross_correl_val = 0
+                    
+                    for reference_ac in random_reference_acs:
+                        try:
+                            reference_vol_pp = cPickle.load(open(edge_reference_name,"rb"),encoding = 'latin1')
+                        except:
+                            reference_vol_pp = cPickle.load(open(edge_reference_name,"rb"))
+                        #reference_dim is the dimension of the edge reference
+                        reference_dim = np.shape(reference_vol_pp)
+                        reference_vol = np.ndarray.flatten(reference_vol_pp)
+                        
+                        #Get bounds to compare on the query image
+                        x1 = pt[0] - reference_dim[0]//2 + i
+                        x2 = x1 + reference_dim[0]
+                        
+                        y1 = pt[1] - reference_dim[1]//2 + j
+                        y2 = y1 + reference_dim[1]
+                        
+                        z1 = pt[2] - reference_dim[2]//2 + k
+                        z2 = z1 + reference_dim[2]
+                        
+                        #Use the Canny edge version of the query image for cross correlation
+                        query_vol_pp = np.array(query_edges_blurred[x1:x2,y1:y2,z1:z2])
+                        query_vol = np.ndarray.flatten(query_vol_pp)
+ 
+                        query_dim = np.shape(query_vol_pp)
+                        
+                        #Exit current slide location if out of bounds
+                        if x1 < 0 or y1 < 0 or z1 < 0:
+                            break
+                        
+                        if x2 > query_edges_dim[0] or y2 > query_edges_dim[1] or z2 > query_edges_dim[2]:
+                            break
+
+                        #Use norms to normalize the vectors for cross-correlation
+                        #print(np.linalg.norm(reference_vol))
+                        #print(np.linalg.norm(query_vol))
+                        reference_vol_norm = reference_vol/np.linalg.norm(reference_vol)
+                        query_vol_norm = query_vol/np.linalg.norm(query_vol)
+                        
+                        
+                        if (np.dot(reference_vol_norm, query_vol_norm)) < 0:
+                            print("ALERT NEGATIVE DOT PRODUCT VIOLATION")
+                        
+                        cross_correl_val = cross_correl_val + np.dot(reference_vol_norm, query_vol_norm)
+                    
+                    heat_map[i+4,j+4,k+1] = cross_correl_val
+                    if cross_correl_val > max_cross_correl_val:
+                        #print(max_cross_correl_val)
+                        max_cross_correl_val = cross_correl_val
+                        #print("The cross correlation value is: ", cross_correl_val)
+                        optimal_pt = [pt[0]+i,pt[1]+j, pt[2]+k]
+                        #print("The optimal point currently is: ", optimal_pt)
+        
+        
+        #Append heat_map
+        heat_maps.append(heat_map)
     
-    
+    #Set Detection Threshold for Specific Accession Number
+    global detection_threshold
+    detection_threshold = (dicom_dwn4x_pp_dim[0]//64)*(dicom_dwn4x_pp_dim[1]//64)*3
+    #print(detection_threshold)
+    '''
+
     print("The Final Detection point is: ",optimal_pt)
 
   
@@ -399,8 +490,24 @@ def GHT(ac_num):
     
     plt.scatter(optimal_pt[1],optimal_pt[0], marker='X', color='m')
     
+    #Put on ground truth point on NMS + Optimal Point Plot
+    plt.scatter(ground_truth[ac_num][1], ground_truth[ac_num][0], marker= 'o', color = 'c')
     
-
+    '''
+    #Add plot for heat map
+    for i in range(2):
+        try:
+            heat_map = heat_maps[i]
+            heat_map_norm = heat_map
+            fig.add_subplot(2,4,7+i)
+            plt.title('Heat Map')
+            plt.imshow(heat_map_norm[:,:,1])
+        except:
+            pass
+    '''
+    #plt.show()
+    
+    
     
     #Save Figure
     #print(os.getcwd())
@@ -445,6 +552,7 @@ if __name__ == '__main__':
     sheet = book.active
     row_count = sheet.max_row
     
+    global ground_truth
     ground_truth = {}
 
     for i in range(3,row_count): #divided by 3 as a test 
@@ -471,13 +579,10 @@ if __name__ == '__main__':
     global image_dir_name
     
     #Set Hyperparameters to be validated with validation set
-    std_devs = [1.0,1.5,2.0]
-    #std_devs_edges = [0,0.5,1.0,1.5,2.0]
-    std_devs_edges = [0]
-    #min_cannys = [20,30,40,50,60]
+    std_devs = [0,0.5,1.0,1.5]
+    std_devs_edges = [0,0.5,1.0]
     min_cannys = [30,40,50,60]
-    #max_cannys = [160,180,200,220,240,260]
-    max_cannys = [160,180,200,220]
+    max_cannys = [160,180,200,220,240,260]
 
     std_dev_canny = 0.5
     
@@ -512,7 +617,6 @@ if __name__ == '__main__':
                     #Get optimal points through multi processing
                     p = Pool(processes = 25)
                
-                    #Run GHT *********************************
                     optimal_pts = p.map(GHT,multi_proc_ac_num)
                     
                     optimal_pts_dict = {}
@@ -534,7 +638,7 @@ if __name__ == '__main__':
                             error = error + curr_error
                             
                             #Can adjust threshold for correct detection accordingly
-                            if curr_error <= 12.0:
+                            if curr_error <= 20.0:
                                 correct_detections = correct_detections + 1
                             else:
                                 incorrect_ac_num.append(ac_num)
@@ -545,7 +649,7 @@ if __name__ == '__main__':
                     plt.close()
                     
                 
-                    
+                    '''
                     print("======================================")
                     print("********SUMMARY OF PERFORMANCE********")
                     print("======================================")
@@ -561,7 +665,8 @@ if __name__ == '__main__':
                     
                     print("The Accession Numbers for Incorrect Detections are: ", incorrect_ac_num)
                     print("Detection Point Information: ", detection_pt_info)
-                    
+                    '''
+
                     #Output General Information to File
                     f = open(image_dir_name + "/summary.txt","w")
                     f.write("======================================\n")
@@ -595,21 +700,20 @@ if __name__ == '__main__':
                     
                     f.close()
                     
-                    #Create Excel Spreadsheet with Trial Detection Information (for segmenting in next step)
+                    #Create Excel Spreadsheet with Detection Information
                     wb = openpyxl.Workbook()
-                    dest_filename = '../GHT/detection_pts_trial_' + str(MIN_CANNY_THRESHOLD) + '_' + str(MAX_CANNY_THRESHOLD) + '_' 
-                    + str(std_dev_canny) + '_' + str(std_dev) + '_' + str(std_dev_edges) + '.xlsx'
-                    
+                    dest_filename = '../GHT/detection_pts_trial_' + str(MIN_CANNY_THRESHOLD) + '_' + str(MAX_CANNY_THRESHOLD) + '_' + str(std_dev_canny) + '_' + str(std_dev) + '_' + str(std_dev_edges) + '.xlsx'
+
+
                     ws1 = wb.active
                     ws1.append(['ac_num','x','y','z'])
-                               
                     for key in detection_pt_info.keys():
-                         detected_pt = detection_pt_info[key][0]
-                         row = [key, detected_pt[0], detected_pt[1], detected_pt[2]]
-                         ws1.append(row)
-                    wb.save(dest_filename) 
-                         
-                    
+                        detected_pt = detection_pt_info[key][0]
+                        row = [key,detected_pt[0],detected_pt[1],detected_pt[2]]
+
+                        ws1.append(row)
+                    wb.save(dest_filename)
+                
                     
 #===================================================================================================
 #===================================================================================================
