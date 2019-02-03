@@ -2,7 +2,8 @@ import openpyxl
 import os
 import matplotlib.pyplot as plt
 
-os.chdir("C:\\Users\\yoons\\Documents\\4th Year Semester 2\\ESC499 - Thesis\\Undergraduate_Thesis_Scripts\\GHT")
+#os.chdir("C:\\Users\\yoons\\Documents\\4th Year Semester 2\\ESC499 - Thesis\\Undergraduate_Thesis_Scripts\\GHT")
+os.chdir("C:\\Users\\yoons\\Documents\\ESC499\\Undergraduate_Thesis_Scripts\\GHT")
 
 book = openpyxl.load_workbook("../GHT/ground_truth_detection_pts_all.xlsx")
 sheet = book.active
@@ -51,6 +52,8 @@ plt.xlabel('y')
 plt.ylabel('x')
 
 plt.scatter(nms_y_pts,nms_x_pts, marker='o', color='g')
+
+plt.scatter(y_total/counter, x_total/counter, marker= 'X', color = 'r')
 
 plt.savefig("ground_truth_distribution.png")
 plt.show()
