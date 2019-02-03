@@ -120,124 +120,6 @@ def accumulate_gradients(r_table, grayImage):
                     accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1 
   
     
-        
-    '''
-    for i in range(edges_dim[0]//2):
-        for j in range(edges_dim[1]//2):
-            for k in range(edges_dim[2]):
-                if edges[i,j,k]:
-                    for r in r_table[(int(phi[i,j,k]), int(psi[i,j,k]))]:
-                        accum_i, accum_j, accum_k = i+r[0], j+r[1], k+r[2]
-                        if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
-                            accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1
-
-    for i in range(edges_dim[0]//2):
-        for j in range(edges_dim[1]//2,edges_dim[1]):
-            for k in range(edges_dim[2]):
-                if edges[i,j,k]:
-                    for r in r_table[(int(phi[i,j,k]), int(psi[i,j,k]))]:
-                        accum_i, accum_j, accum_k = i+r[0], j+r[1], k+r[2]
-                        if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
-                            accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1
-           
-
-    for i in range(edges_dim[0]//2,edges_dim[0]):
-        for j in range(edges_dim[1]//2):
-            for k in range(edges_dim[2]):
-                if edges[i,j,k]:
-                    for r in r_table[(int(phi[i,j,k]), int(psi[i,j,k]))]:
-                        accum_i, accum_j, accum_k = i+r[0], j+r[1], k+r[2]
-                        if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
-                            accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1    
-
-    for i in range(edges_dim[0]//2,edges_dim[0]):
-        for j in range(edges_dim[1]//2,edges_dim[1]):
-            for k in range(edges_dim[2]):
-                if edges[i,j,k]:
-                    for r in r_table[(int(phi[i,j,k]), int(psi[i,j,k]))]:
-                        accum_i, accum_j, accum_k = i+r[0], j+r[1], k+r[2]
-                        if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
-                            accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1                                
-    '''
-    
-    
-    '''
-    #Top Half of Edges==========================================================================
-    for (i,j,k),value in np.ndenumerate(edges[0:edges_dim[0]//2,0:edges_dim[1]//2,0:edges_dim[2]//2]):
-        if value:
-            for r in r_table[(int(phi[i,j,k]), int(psi[i,j,k]))]:
-                #iterations = iterations + 1
-                accum_i, accum_j, accum_k = i+r[0], j+r[1], k+r[2]
-                if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
-                    accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1
-                    
-    for (i,j,k),value in np.ndenumerate(edges[0:edges_dim[0]//2,edges_dim[1]//2: edges_dim[1],0:edges_dim[2]//2]):
-        if value:
-            j = j + edges_dim[1]//2
-            for r in r_table[(int(phi[i,j,k]), int(psi[i,j,k]))]:
-                accum_i, accum_j, accum_k = i+r[0], j+r[1], k+r[2]
-                if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
-                    accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1
-                    
-                    
-    for (i,j,k),value in np.ndenumerate(edges[edges_dim[0]//2: edges_dim[0],0:edges_dim[1]//2,0:edges_dim[2]//2]):
-        if value:
-            i = i + edges_dim[0]//2
-            for r in r_table[(int(phi[i,j,k]), int(psi[i,j,k]))]:
-                accum_i, accum_j, accum_k = i+r[0], j+r[1], k+r[2]
-                if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
-                    accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1
-    
-    for (i,j,k),value in np.ndenumerate(edges[edges_dim[0]//2: edges_dim[0],edges_dim[1]//2: edges_dim[1],0:edges_dim[2]//2]):
-        if value:
-            i = i + edges_dim[0]//2
-            j = j + edges_dim[1]//2
-            for r in r_table[(int(phi[i,j,k]), int(psi[i,j,k]))]:
-                accum_i, accum_j, accum_k = i+r[0], j+r[1], k+r[2]
-                if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
-                    accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1
-    
-    #Bottom Half of Edges=======================================================================
-    for (i,j,k),value in np.ndenumerate(edges[0:edges_dim[0]//2,0:edges_dim[1]//2,edges_dim[2]//2:edges_dim[2]]):
-        if value:
-            k = k + edges_dim[2]//2
-            for r in r_table[(int(phi[i,j,k]), int(psi[i,j,k]))]:
-                accum_i, accum_j, accum_k = i+r[0], j+r[1], k+r[2]
-                if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
-                    accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1
-                    
-    for (i,j,k),value in np.ndenumerate(edges[0:edges_dim[0]//2,edges_dim[1]//2: edges_dim[1],edges_dim[2]//2:edges_dim[2]]):
-
-        if value:
-            j = j + edges_dim[1]//2
-            k = k + edges_dim[2]//2
-            for r in r_table[(int(phi[i,j,k]), int(psi[i,j,k]))]:
-                accum_i, accum_j, accum_k = i+r[0], j+r[1], k+r[2]
-                if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
-                    accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1
-                    
-                    
-    for (i,j,k),value in np.ndenumerate(edges[edges_dim[0]//2: edges_dim[0],0:edges_dim[1]//2,edges_dim[2]//2 :edges_dim[2]]):
-
-        if value:
-            i = i + edges_dim[0]//2
-            k = k + edges_dim[2]//2
-            for r in r_table[(int(phi[i,j,k]), int(psi[i,j,k]))]:
-                accum_i, accum_j, accum_k = i+r[0], j+r[1], k+r[2]
-                if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
-                    accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1
-    
-    for (i,j,k),value in np.ndenumerate(edges[edges_dim[0]//2: edges_dim[0],edges_dim[1]//2: edges_dim[1],edges_dim[2]//2:edges_dim[2]]):
-
-        if value:
-            i = i + edges_dim[0]//2
-            j = j + edges_dim[1]//2
-            k = k + edges_dim[2]//2    
-            for r in r_table[(int(phi[i,j,k]), int(psi[i,j,k]))]:
-                accum_i, accum_j, accum_k = i+r[0], j+r[1], k+r[2]
-                if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
-                    accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1    
-    '''
 
     print(datetime.datetime.now())  
     
@@ -297,6 +179,8 @@ def GHT(ac_num):
     #Get the references that will be used for Cervical Spine Vertebrae Detection
     reference_acs = []
 
+    image_file_name = ac_num + "_accumulator_sigma_" + str(std_dev) + "_edge_sigma_" + str(std_dev_edges)  + "_canny_sigma_" + str(std_dev_canny) + "_min_canny_" + str(MIN_CANNY_THRESHOLD) + "_max_canny_" + str(MAX_CANNY_THRESHOLD)
+
     for file_name in os.listdir("no_fractures"):
         #The name should have "reference" in it but no "edge" in it
         if file_name.find("reference.pkl") != -1 and file_name.find("edge") == -1:
@@ -316,10 +200,10 @@ def GHT(ac_num):
     print("Size of Downsized Dicom Input: ", dicom_dwn4x_pp_dim)
 
     #Specify Region of Interest
-    x1 = 5
-    x2 = 65
-    y1 = 15
-    y2 = 80
+    x1 = 0
+    x2 = 60
+    y1 = 17
+    y2 = 85
 
     
     #Get specific region of focus (based on prior information)
@@ -379,21 +263,12 @@ def GHT(ac_num):
     
     query_edges_blurred = gaussian_filter(np.multiply(query_edges,50),sigma = std_dev_edges, order = 0)
 
-    '''
-    #Sanity Check regarding number of negative edges
-    neg = 0
-    for i in range(query_edges_dim[0]):
-        for j in range(query_edges_dim[1]):
-            for k in range(query_edges_dim[2]):
-                if query_edges_blurred[i,j,k] < 0:
-                    neg = neg + 1
-                    
-    print("Number of Negative Edges: ", neg)
-    '''
 
 #===================================================================================================
 #Initial Plots and Top 40 Points for Visualization Purposes
 #===================================================================================================
+    plot_z = ground_truth[ac_num][2]
+
     #Plot up to top 40 points
     fig = plt.figure(num = image_file_name, figsize = (24,12))
     plt.gray()
@@ -401,24 +276,29 @@ def GHT(ac_num):
     fig.suptitle(image_file_name)
 
     fig.add_subplot(2,4,1)
-    plt.title('Query Image')
-    plt.imshow(dicom_dwn4x_pp[:,:,dicom_dwn4x_pp_dim[2]//2])
+    plt.title('Query Image [Slice: ' + str(plot_z) + ']')
+    #plt.imshow(dicom_dwn4x_pp[:,:,dicom_dwn4x_pp_dim[2]//2])
+    plt.imshow(dicom_dwn4x_pp[:,:,plot_z])
     
     fig.add_subplot(2,4,2)
     plt.title('Query Image Edges')
-    plt.imshow(query_edges[:,:,dicom_dwn4x_pp_dim[2]//2])
+    #plt.imshow(query_edges[:,:,dicom_dwn4x_pp_dim[2]//2])
+    plt.imshow(query_edges[:,:,plot_z])
     
     fig.add_subplot(2,4,3)
     plt.title('Query Image Edges Blurred')
-    plt.imshow(query_edges_blurred[:,:,dicom_dwn4x_pp_dim[2]//2])
+    #plt.imshow(query_edges_blurred[:,:,dicom_dwn4x_pp_dim[2]//2])
+    plt.imshow(query_edges_blurred[:,:,plot_z])
     
     fig.add_subplot(2,4,4)
     plt.title('Final Accumulator')
-    plt.imshow(final_accumulator[:,:,dicom_dwn4x_dim[2]//2])
+    #plt.imshow(final_accumulator[:,:,dicom_dwn4x_dim[2]//2])
+    plt.imshow(final_accumulator[:,:,plot_z])
      
     fig.add_subplot(2,4,5)
     plt.title('Detection of Top 40 Points')
-    plt.imshow(dicom_dwn4x_pp[:,:,dicom_dwn4x_dim[2]//2])
+    #plt.imshow(dicom_dwn4x_pp[:,:,dicom_dwn4x_dim[2]//2])
+    plt.imshow(dicom_dwn4x_pp[:,:,plot_z])
 
 
     #Get top 40 results that can be filtered out
@@ -447,7 +327,8 @@ def GHT(ac_num):
     #Plot NMS points
     fig.add_subplot(2,4,6)
     plt.title('Non-Maximal Suppression and Optimal Points')
-    plt.imshow(dicom_dwn4x_pp[:,:,dicom_dwn4x_pp_dim[2]//2])
+    #plt.imshow(dicom_dwn4x_pp[:,:,dicom_dwn4x_pp_dim[2]//2])
+    plt.imshow(dicom_dwn4x_pp[:,:,plot_z])
 
     #Perform non-maximal suppression
     nms_pts = []
@@ -474,7 +355,7 @@ def GHT(ac_num):
 #Normalized Cross Correlation and Heat Map Generation
 #===================================================================================================
     #Sliding reference across volume around detected points to find accurate point
-    optimal_pt = [0,0]
+    #optimal_pt = [0,0]
     max_cross_correl_val = -float('inf')
     
     heat_maps = []
@@ -495,10 +376,11 @@ def GHT(ac_num):
             reference_vol_edges = canny_edges_3d(reference_vol_pp2)
             reference_vol_edges_blurred = gaussian_filter(np.multiply(reference_vol_edges,50),sigma = std_dev_edges, order = 0)
             
-            cPickle.dump(reference_vol_edges_blurred, open(edge_reference_name,"wb"))
+            cPickle.dump(reference_vol_edges_blurred, open(edge_reference_name,"wb"),protocol = 2)
             #print("no_fractures/edge_" + reference_ac)
             
-    
+            
+    '''   
     if len(nms_pts) > 1:
         low_pt = nms_pts[0]
         
@@ -507,7 +389,18 @@ def GHT(ac_num):
                 low_pt = pt
         
         nms_pts.remove(low_pt)
+    '''
         
+    optimal_pt = [0,0,0]
+    min_xdir = float('Inf')
+ 
+
+    for pt in nms_pts:
+        if pt[0] < min_xdir:
+            min_xdir = pt[0]
+            optimal_pt = pt[0:3]        
+ 
+    '''       
     for pt in nms_pts:
         heat_map = np.zeros((9,9,3))
         print("The point being investigated is: ", pt)
@@ -579,6 +472,7 @@ def GHT(ac_num):
     global detection_threshold
     detection_threshold = (dicom_dwn4x_pp_dim[0]//64)*(dicom_dwn4x_pp_dim[1]//64)*3
     #print(detection_threshold)
+    '''
     
     print("The Final Detection point is: ",optimal_pt)
 
@@ -598,7 +492,10 @@ def GHT(ac_num):
     
     plt.scatter(optimal_pt[1],optimal_pt[0], marker='X', color='m')
     
+    #Put on ground truth point on NMS + Optimal Point Plot
+    plt.scatter(ground_truth[ac_num][1], ground_truth[ac_num][0], marker= 'o', color = 'c')
     
+    '''' 
     #Add plot for heat map
     for i in range(2):
         try:
@@ -609,6 +506,7 @@ def GHT(ac_num):
             plt.imshow(heat_map_norm[:,:,1])
         except:
             pass
+    '''
     
     #plt.show()
     
@@ -632,8 +530,8 @@ def GHT(ac_num):
 #===================================================================================================
 #===================================================================================================
 if __name__ == '__main__':
-    #os.chdir("C:\\Users\\yoons\\Documents\\4th Year Semester 2\\ESC499 - Thesis\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
-    os.chdir("../DicomSubsampling")    
+    os.chdir("C:\\Users\\yoons\\Documents\\ESC499\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
+    #os.chdir("../DicomSubsampling")    
 
     plt.close()
 #===================================================================================================
@@ -653,7 +551,7 @@ if __name__ == '__main__':
 #Read in ground truth values from the ground_truth_detection_pts.xlsx spreadsheet
 #===================================================================================================
     #Get the detection results for the validation set
-    book = openpyxl.load_workbook("../GHT/ground_truth_detection_pts.xlsx")
+    book = openpyxl.load_workbook("../GHT/ground_truth_detection_pts_all.xlsx")
     sheet = book.active
     row_count = sheet.max_row
     
@@ -711,13 +609,14 @@ if __name__ == '__main__':
                     else:
                         continue
                     
+                    
+                    
                     #Go through GHT for the validation set
                     for ac_num in ac_nums:
                         if ac_num in ground_truth.keys():
-                            image_file_name = ac_num + "_accumulator_sigma_" + str(std_dev) + "_edge_sigma_" + str(std_dev_edges)  + "_canny_sigma_" + str(std_dev_canny) + "_min_canny_" + str(MIN_CANNY_THRESHOLD) + "_max_canny_" + str(MAX_CANNY_THRESHOLD)
-                            #total_detections = total_detections + 1
                             
                             optimal_pt = GHT(ac_num)
+                            
                             print("Detected Optimal Point: ", optimal_pt)
                             print("Ground Truth Point: ", ground_truth[ac_num])
                         
@@ -725,7 +624,7 @@ if __name__ == '__main__':
                             error = error + curr_error
                             
                             #Can adjust threshold for correct detection accordingly
-                            if curr_error <= detection_threshold:
+                            if curr_error <= 20.0:
                                 correct_detections = correct_detections + 1
                             else:
                                 incorrect_ac_num.append(ac_num)
@@ -786,6 +685,19 @@ if __name__ == '__main__':
                     
                     f.close()
                     
+                    #Create Excel Spreadsheet with Detection Information
+                    wb = openpyxl.Workbook()
+                    dest_filename = '../GHT/detection_pts_trial_' + str(MIN_CANNY_THRESHOLD) + '_' + str(MAX_CANNY_THRESHOLD) + '_' + str(std_dev_canny) + '_' + str(std_dev) + '_' + str(std_dev_edges) + '.xlsx'
+
+
+                    ws1 = wb.active
+                    ws1.append(['ac_num','x','y','z'])
+                    for key in detection_pt_info.keys():
+                        detected_pt = detection_pt_info[key][0]
+                        row = [key,detected_pt[0],detected_pt[1],detected_pt[2]]
+
+                        ws1.append(row)
+                    wb.save(dest_filename)              
                     
 #===================================================================================================
 #===================================================================================================
