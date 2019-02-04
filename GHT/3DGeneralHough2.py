@@ -347,18 +347,20 @@ def GHT(ac_num):
     
     plt.scatter(y_pts,x_pts, marker='.', color='r')
      
-    '''  
-    '''
+
+    
     #Testing optimal point
-    '''
+    
+    
     #print(m[0][1])
     #print(m[1][1])
     k = 5
     k_sum_pp = np.zeros(3)
     for index in range(k):
         k_sum_pp = np.add(k_sum_pp, m[index][1])
+        print(m[index])
     
-    optimal_pt = (int(k_sum_pp[0]//5),int(k_sum_pp[1]//5),int(k_sum_pp[2]//5))
+    optimal_pt = (int(k_sum_pp[0]//5) + x1,int(k_sum_pp[1]//5) + y1,int(k_sum_pp[2]//5))
     
     #Averaging top k points
     #print(optimal_pt)
@@ -366,7 +368,7 @@ def GHT(ac_num):
         
     #print ("Top 40 Most Likely Points (x,y,z,certainty): ", points)
 
-    '''
+    
     
 #===================================================================================================
 #Non-maximal suppression
@@ -443,7 +445,7 @@ def GHT(ac_num):
     '''
     
     #Original Optimal Point
-    
+    '''
     optimal_pt = [0,0,0]
     min_xdir = float('Inf')
  
@@ -452,7 +454,7 @@ def GHT(ac_num):
         if pt[0] < min_xdir:
             min_xdir = pt[0]
             optimal_pt = pt[0:3]        
-    
+    '''
     
     
     
