@@ -201,7 +201,7 @@ def GHT(ac_num):
 
     #Specify Region of Interest
     x1 = 0
-    x2 = 60
+    x2 = 58
     y1 = 17
     y2 = 85
 
@@ -249,6 +249,35 @@ def GHT(ac_num):
     
     final_accumulator = accumulator
     
+    #The final accumulator is the likelihood of the detection point being somewhere.
+    #The prior is the function function: prior = (1 - (x-29)^4/29^4 - (y-51)^4/34^4)^1/4
+    final_ac_dim = np.shape(final_accumulator)
+    prior = np.zeros(final_ac_dim)
+    
+    print(final_ac_dim)
+    
+    for dim1 in range(final_ac_dim[0]):
+        for dim2 in range(final_ac_dim[1]):
+            if dim1 < 29:
+                temp1 = (29 - dim1)**6
+            else:
+                temp1 = (dim1 - 29)**6
+            
+            if dim2 < 51:
+                temp2 = (51 - dim2)**6
+            else:
+                temp2 = (dim2 - 51)**6
+            
+            if (temp1/29**6 + temp2/34**6) <= 1:
+                prior[dim1,dim2] = (1 - temp1/29**6 - temp2/34**6)**(1/6)
+
+            #print(temp1/29**4)
+            #print(temp2/34**4)
+            #print(1 - temp1/29**4 - temp2/34**4)                
+            
+            
+    
+    final_accumulator = np.multiply(final_accumulator,prior)
     
 #===================================================================================================
 #Blurring the Accumulator Matrix and Query Edge Image
@@ -317,10 +346,28 @@ def GHT(ac_num):
         z_pts.append(pt[1][2])
     
     plt.scatter(y_pts,x_pts, marker='.', color='r')
+     
+    '''  
+    '''
+    #Testing optimal point
+    '''
+    #print(m[0][1])
+    #print(m[1][1])
+    k = 5
+    k_sum_pp = np.zeros(3)
+    for index in range(k):
+        k_sum_pp = np.add(k_sum_pp, m[index][1])
+    
+    optimal_pt = (int(k_sum_pp[0]//5),int(k_sum_pp[1]//5),int(k_sum_pp[2]//5))
+    
+    #Averaging top k points
+    #print(optimal_pt)
+    
         
     #print ("Top 40 Most Likely Points (x,y,z,certainty): ", points)
 
-
+    '''
+    
 #===================================================================================================
 #Non-maximal suppression
 #===================================================================================================
@@ -360,6 +407,7 @@ def GHT(ac_num):
     
     heat_maps = []
     
+    '''
     #Generate the edge references if they do not exist in the directory "no_Fractures"
     for reference_ac in random_reference_acs:
         edge_reference_name = "no_fractures/edge_references/edge" + "_es" + str(std_dev_edges) + "_min" + str(MIN_CANNY_THRESHOLD) + "_max" + str(MAX_CANNY_THRESHOLD) + "_cs" + str(std_dev_canny) + "_" + reference_ac
@@ -371,6 +419,7 @@ def GHT(ac_num):
                 reference_vol_pp1 = cPickle.load(open("no_fractures/" + reference_ac,"rb"),encoding = 'latin1')
             except:
                 reference_vol_pp1 = cPickle.load(open("no_fractures/" + reference_ac,"rb"))
+            
             reference_vol_pp2 = np.array(reference_vol_pp1)
             
             reference_vol_edges = canny_edges_3d(reference_vol_pp2)
@@ -379,8 +428,10 @@ def GHT(ac_num):
             cPickle.dump(reference_vol_edges_blurred, open(edge_reference_name,"wb"),protocol = 2)
             #print("no_fractures/edge_" + reference_ac)
             
-            
-    '''   
+    '''
+    
+    '''
+    #Method of removing the lowest detection point if there is more than one before doing normalized cross correlation
     if len(nms_pts) > 1:
         low_pt = nms_pts[0]
         
@@ -390,7 +441,9 @@ def GHT(ac_num):
         
         nms_pts.remove(low_pt)
     '''
-        
+    
+    #Original Optimal Point
+    
     optimal_pt = [0,0,0]
     min_xdir = float('Inf')
  
@@ -399,7 +452,10 @@ def GHT(ac_num):
         if pt[0] < min_xdir:
             min_xdir = pt[0]
             optimal_pt = pt[0:3]        
- 
+    
+    
+    
+    
     '''       
     for pt in nms_pts:
         heat_map = np.zeros((9,9,3))
