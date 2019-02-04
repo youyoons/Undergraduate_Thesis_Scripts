@@ -27,6 +27,7 @@ def process_study(scans,file_names,patient,exclusions,log_path,path_raw,path_pro
     num_of_proc = len(os.listdir(path_proc))
     print("Number of Valid Scans Processed: ", num_of_proc)
     
+    #Limit Number of Valid Scans needed
     if num_of_proc == 120:
         return None
 
@@ -161,7 +162,7 @@ def process_scans(raw_data_dir,path_raw,path_proc,log_path):
     dicom_exclusions = ['AccessionNumber','AdditionalPatientHistory','InstitutionName','NameOfPhysiciansReadingStudy','OtherPatientIDs','OtherPatientIDsSequence','PatientBirthDate','PatientID','PatientName','ReferringPhysicianName']
 
     #patients = os.listdir(raw_data_dir)
-    patients = open(raw_data_dir,"r+")    
+    patients = open(raw_data_dir,"r+")     #patients is all the raw paths
 
     #print(patients)
 
@@ -178,9 +179,11 @@ def process_scans(raw_data_dir,path_raw,path_proc,log_path):
             slices = [pydicom.read_file(os.path.join(patient_path,s)) for s in dicom_files]
 
             proc_path_acnum = os.path.join(path_proc, str(slices[0].AccessionNumber))
+            
             if os.path.isdir(proc_path_acnum) == False:
                 file_names = [os.path.join(patient_path,s) for s in dicom_files]
                 print("Processed Does not Exist. Processing.")
+                
                 log_line = process_study(slices,file_names,patient,dicom_exclusions,log_path,path_raw,path_proc)
          
                 if log_line == None:
@@ -197,7 +200,7 @@ def process_scans(raw_data_dir,path_raw,path_proc,log_path):
 if __name__=="__main__":
 
     #raw_data_dir = "/home/youy/Documents/Spine/batch_test2/"  
-    raw_data_dir = "/home/youy/Documents/ESC499/Undergraduate_Thesis_Scripts/Copy_Scans/path_frac.log"
+    raw_data_dir = "/home/youy/Documents/ESC499/Undergraduate_Thesis_Scripts/Copy_Scans/path_scans.log"
     path_raw = "/home/youy/Documents/Spine/RawData_y"
     path_proc = "/home/youy/Documents/Spine/ProcessedData_y"
     log_path = "/home/youy/Documents/Spine/linking_log.csv"
