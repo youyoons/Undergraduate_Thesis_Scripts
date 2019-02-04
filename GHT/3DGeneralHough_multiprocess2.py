@@ -221,7 +221,7 @@ def GHT(ac_num):
     
     #Randomly choose 5 references
     #random_reference_acs = []
-    random_reference_acs = reference_acs
+    random_reference_acs = reference_acs[0:5]
 
     
     #while len(random_reference_acs) < 5: 
@@ -317,6 +317,27 @@ def GHT(ac_num):
         z_pts.append(pt[1][2])
     
     plt.scatter(y_pts,x_pts, marker='.', color='r')
+     
+     
+    #Testing optimal point
+    
+    '''
+    #print(m[0][1])
+    #print(m[1][1])
+    k = 5
+    k_sum_pp = np.zeros(3)
+    for index in range(k):
+        k_sum_pp = np.add(k_sum_pp, m[index][1])
+    
+    optimal_pt = (int(k_sum_pp[0]//5),int(k_sum_pp[1]//5),int(k_sum_pp[2]//5))
+    
+    #Averaging top k points
+    #print(optimal_pt)
+    
+        
+    #print ("Top 40 Most Likely Points (x,y,z,certainty): ", points)
+
+    '''
         
     #print ("Top 40 Most Likely Points (x,y,z,certainty): ", points)
 
@@ -360,6 +381,7 @@ def GHT(ac_num):
     
     heat_maps = []
     
+    '''
     #Generate the edge references if they do not exist in the directory "no_Fractures"
     for reference_ac in random_reference_acs:
         edge_reference_name = "no_fractures/edge_references/edge" + "_es" + str(std_dev_edges) + "_min" + str(MIN_CANNY_THRESHOLD) + "_max" + str(MAX_CANNY_THRESHOLD) + "_cs" + str(std_dev_canny) + "_" + reference_ac
@@ -381,6 +403,9 @@ def GHT(ac_num):
             #print("no_fractures/edge_" + reference_ac)
             
     '''
+    
+    '''
+    #Method of removing the lowest detection point if there is more than one before doing normalized cross correlation
     if len(nms_pts) > 1:
         low_pt = nms_pts[0]
         
@@ -390,6 +415,8 @@ def GHT(ac_num):
         
         nms_pts.remove(low_pt)
     '''
+    
+    '''
     optimal_pt = [0,0,0]
     min_xdir = float('Inf')
  
@@ -398,6 +425,8 @@ def GHT(ac_num):
         if pt[0] < min_xdir:
             min_xdir = pt[0]
             optimal_pt = pt[0:3]
+    '''        
+            
     '''
     for pt in nms_pts:
         heat_map = np.zeros((9,9,3))
@@ -527,8 +556,8 @@ def GHT(ac_num):
 #===================================================================================================
 #===================================================================================================
 if __name__ == '__main__':
-    #os.chdir("C:\\Users\\yoons\\Documents\\4th Year Semester 2\\ESC499 - Thesis\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
-    os.chdir("../DicomSubsampling")    
+    os.chdir("C:\\Users\\yoons\\Documents\\ESC499\\\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
+    #os.chdir("../DicomSubsampling")    
 
     plt.close()
 #===================================================================================================
