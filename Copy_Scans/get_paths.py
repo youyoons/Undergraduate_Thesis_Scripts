@@ -2,6 +2,9 @@ import openpyxl
 import os
 import numpy as np
 
+#os.chdir('C:\\Users\\yoons\\Documents\\ESC499\\Undergraduate_Thesis_Scripts\\Copy_Scans')
+
+
 #True if we want to get paths with only fractures
 #False if we want to get paths without any fractures
 fracture = False
@@ -25,7 +28,7 @@ for row in range(2,row_count+1):
     #No Fractures
     else:
         if sheet.cell(row,3).value != 1 and sheet.cell(row,4).value != 1:
-        path_scan = sheet.cell(row,2).value
+            path_scan = sheet.cell(row,2).value
         
         if path_scan != None:
             scans_log.write(path_scan + "\n")
