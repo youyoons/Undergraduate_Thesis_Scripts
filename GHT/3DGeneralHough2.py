@@ -250,6 +250,7 @@ def GHT(ac_num):
     
     final_accumulator = accumulator
     
+    
     #The final accumulator is the likelihood of the detection point being somewhere.
     #The prior is the function function: prior = (1 - (x-29)^4/29^4 - (y-51)^4/34^4)^1/4
     final_ac_dim = np.shape(final_accumulator)
@@ -262,26 +263,9 @@ def GHT(ac_num):
     
     for dim1 in range(final_ac_dim[0]):
         for dim2 in range(final_ac_dim[1]):
-            '''
-            if dim1 < 29:
-                temp1 = (29 - dim1)**pwr
-            else:
-                temp1 = (dim1 - 29)**pwr
-            
-            if dim2 < 51:
-                temp2 = (51 - dim2)**pwr
-            else:
-                temp2 = (dim2 - 51)**pwr
-            '''
-            
             if (dim1 - 29)/29**6 + (dim2 - 51)/34**6 <= 1:
                 prior[dim1][dim2] = math.pow(1 - float(dim1 - 29)/29**pwr - float(dim2 - 51)/34**pwr,math.pow(pwr,-1))
-
-            #print(temp1/29**4)
-            #print(temp2/34**4)
-            #print(1 - temp1/29**4 - temp2/34**4)                
-            
-            
+    
     
     final_accumulator = np.multiply(final_accumulator,prior)
     
@@ -354,12 +338,7 @@ def GHT(ac_num):
     plt.scatter(y_pts,x_pts, marker='.', color='r')
      
 
-    
-    #Testing optimal point
-    
-    
-    #print(m[0][1])
-    #print(m[1][1])
+    #Take the top K average 
     k = 5
     k_sum_pp = np.zeros(3)
     for index in range(k):
@@ -367,10 +346,6 @@ def GHT(ac_num):
         print(m[index])
     
     optimal_pt = (int(k_sum_pp[0]//5) + x1,int(k_sum_pp[1]//5) + y1,int(k_sum_pp[2]//5))
-    
-    #Averaging top k points
-    #print(optimal_pt)
-    
         
     #print ("Top 40 Most Likely Points (x,y,z,certainty): ", points)
 
@@ -460,9 +435,7 @@ def GHT(ac_num):
         if pt[0] < min_xdir:
             min_xdir = pt[0]
             optimal_pt = pt[0:3]        
-    '''
-    
-    
+    '''   
     
     '''       
     for pt in nms_pts:
@@ -646,12 +619,9 @@ if __name__ == '__main__':
     
     #Set Hyperparameters to be validated with validation set
     std_devs = [1.0]
-    #std_devs_edges = [0,0.5,1.0,1.5,2.0]
     std_devs_edges = [0]
-    #min_cannys = [20,30,40,50,60]
-    min_cannys = [40,50,60]
-    #max_cannys = [160,180,200,220,240,260]
-    max_cannys = [140,160,180]
+    min_cannys = [30,40,50,60]
+    max_cannys = [140,160,180,200]
 
     std_dev_canny = 0.5
     

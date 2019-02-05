@@ -199,11 +199,13 @@ def GHT(ac_num):
     dicom_dwn4x_pp_dim = np.shape(dicom_dwn4x_pp)
     print("Size of Downsized Dicom Input: ", dicom_dwn4x_pp_dim)
 
-    #Specify Region of Interest
+#**************************************************************************************************************************
+    #Specify Region of Interest (Hard Blocking of Region Based on Prior Information)
     x1 = 0
-    x2 = 60
+    x2 = 58
     y1 = 17
     y2 = 85
+#**************************************************************************************************************************
 
     
     #Get specific region of focus (based on prior information)
@@ -219,7 +221,7 @@ def GHT(ac_num):
     accumulator = np.zeros(dicom_dwn4x_dim)
     
     
-    #Randomly choose 5 references
+    #Choose N number of references
     #random_reference_acs = []
     random_reference_acs = reference_acs[0:5]
 
@@ -248,6 +250,25 @@ def GHT(ac_num):
         accumulator = np.maximum(accumulator,temp_accumulator)
     
     final_accumulator = accumulator
+    
+    
+    #The final accumulator is the likelihood of the detection point being somewhere.
+    #The prior is the function function: prior = (1 - (x-29)^4/29^4 - (y-51)^4/34^4)^1/4
+    final_ac_dim = np.shape(final_accumulator)
+    prior = np.zeros(final_ac_dim)
+    
+    print(final_ac_dim)
+    
+    #Using Prior Distribution (about average centre of Ground Truth Points)
+    pwr = 6
+    
+    for dim1 in range(final_ac_dim[0]):
+        for dim2 in range(final_ac_dim[1]):
+            if (dim1 - 29)/29**6 + (dim2 - 51)/34**6 <= 1:
+                prior[dim1][dim2] = math.pow(1 - float(dim1 - 29)/29**pwr - float(dim2 - 51)/34**pwr,math.pow(pwr,-1))
+    
+    
+    final_accumulator = np.multiply(final_accumulator,prior)
     
     
 #===================================================================================================
@@ -318,27 +339,16 @@ def GHT(ac_num):
     
     plt.scatter(y_pts,x_pts, marker='.', color='r')
      
-     
-    #Testing optimal point
     
-    '''
-    #print(m[0][1])
-    #print(m[1][1])
+    #Take the top K average 
     k = 5
     k_sum_pp = np.zeros(3)
     for index in range(k):
         k_sum_pp = np.add(k_sum_pp, m[index][1])
+        print(m[index])
     
-    optimal_pt = (int(k_sum_pp[0]//5),int(k_sum_pp[1]//5),int(k_sum_pp[2]//5))
+    optimal_pt = (int(k_sum_pp[0]//5) + x1,int(k_sum_pp[1]//5) + y1,int(k_sum_pp[2]//5))
     
-    #Averaging top k points
-    #print(optimal_pt)
-    
-        
-    #print ("Top 40 Most Likely Points (x,y,z,certainty): ", points)
-
-    '''
-        
     #print ("Top 40 Most Likely Points (x,y,z,certainty): ", points)
 
 
@@ -556,7 +566,7 @@ def GHT(ac_num):
 #===================================================================================================
 #===================================================================================================
 if __name__ == '__main__':
-    os.chdir("C:\\Users\\yoons\\Documents\\ESC499\\\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
+    os.chdir("C:\\Users\\yoons\\Documents\\ESC499\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
     #os.chdir("../DicomSubsampling")    
 
     plt.close()
@@ -608,10 +618,11 @@ if __name__ == '__main__':
     global image_dir_name
     
     #Set Hyperparameters to be validated with validation set
-    std_devs = [0,0.5,1.0,1.5]
-    std_devs_edges = [0,0.5,1.0]
+    std_devs = [1.0]
+    std_devs_edges = [0]
     min_cannys = [30,40,50,60]
-    max_cannys = [160,180,200,220,240,260]
+    max_cannys = [140,160,180,200]
+
 
     std_dev_canny = 0.5
     
