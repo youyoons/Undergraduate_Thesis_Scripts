@@ -199,12 +199,13 @@ def GHT(ac_num):
     dicom_dwn4x_pp_dim = np.shape(dicom_dwn4x_pp)
     print("Size of Downsized Dicom Input: ", dicom_dwn4x_pp_dim)
 
-    #Specify Region of Interest
+#**************************************************************************************************************************
+    #Specify Region of Interest (Hard Blocking of Region Based on Prior Information)
     x1 = 0
     x2 = 58
     y1 = 17
     y2 = 85
-
+#**************************************************************************************************************************
     
     #Get specific region of focus (based on prior information)
     dicom_dwn4x = dicom_dwn4x_pp[x1:x2,y1:y2,:] #dicom_dwn4x contains the specific region of focus
@@ -219,7 +220,7 @@ def GHT(ac_num):
     accumulator = np.zeros(dicom_dwn4x_dim)
     
     
-    #Randomly choose 5 references
+    #Choose N number of references
     #random_reference_acs = []
     random_reference_acs = reference_acs[0:5]
 
@@ -256,20 +257,25 @@ def GHT(ac_num):
     
     print(final_ac_dim)
     
+    #Using Prior Distribution (about average centre of Ground Truth Points)
+    pwr = 6
+    
     for dim1 in range(final_ac_dim[0]):
         for dim2 in range(final_ac_dim[1]):
+            '''
             if dim1 < 29:
-                temp1 = (29 - dim1)**6
+                temp1 = (29 - dim1)**pwr
             else:
-                temp1 = (dim1 - 29)**6
+                temp1 = (dim1 - 29)**pwr
             
             if dim2 < 51:
-                temp2 = (51 - dim2)**6
+                temp2 = (51 - dim2)**pwr
             else:
-                temp2 = (dim2 - 51)**6
+                temp2 = (dim2 - 51)**pwr
+            '''
             
-            if (temp1/29**6 + temp2/34**6) <= 1:
-                prior[dim1,dim2] = (1 - temp1/29**6 - temp2/34**6)**(1/6)
+            if (dim1 - 29)/29**6 + (dim2 - 51)/34**6 <= 1:
+                prior[dim1][dim2] = math.pow(1 - float(dim1 - 29)/29**pwr - float(dim2 - 51)/34**pwr,math.pow(pwr,-1))
 
             #print(temp1/29**4)
             #print(temp2/34**4)
@@ -639,13 +645,13 @@ if __name__ == '__main__':
     global image_dir_name
     
     #Set Hyperparameters to be validated with validation set
-    std_devs = [1.0,1.5,2.0]
+    std_devs = [1.0]
     #std_devs_edges = [0,0.5,1.0,1.5,2.0]
     std_devs_edges = [0]
     #min_cannys = [20,30,40,50,60]
-    min_cannys = [30,40,50,60]
+    min_cannys = [40,50,60]
     #max_cannys = [160,180,200,220,240,260]
-    max_cannys = [160,180,200,220]
+    max_cannys = [140,160,180]
 
     std_dev_canny = 0.5
     
