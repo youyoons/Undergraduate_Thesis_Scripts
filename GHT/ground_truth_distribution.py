@@ -1,6 +1,8 @@
 import openpyxl
 import os
 import matplotlib.pyplot as plt
+import numpy as np
+import math
 
 #os.chdir("C:\\Users\\yoons\\Documents\\4th Year Semester 2\\ESC499 - Thesis\\Undergraduate_Thesis_Scripts\\GHT")
 os.chdir("C:\\Users\\yoons\\Documents\\ESC499\\Undergraduate_Thesis_Scripts\\GHT")
@@ -33,11 +35,10 @@ for i in range(3,row_count): #divided by 3 as a test
         y_total = y_total + y
         z_total = z_total + z
         counter = counter + 1
-    
-#print(ground_truth)
-    
+
     
 #Plot non-maximal suppression points
+#*******************************************************************************
 nms_x_pts = [] 
 nms_y_pts = []
 
@@ -55,6 +56,43 @@ plt.scatter(nms_y_pts,nms_x_pts, marker='o', color='g')
 
 plt.scatter(y_total/counter, x_total/counter, marker= 'X', color = 'r')
 
+
+#Plot the Prior Distribution Boundary
+#*******************************************************************************
+#Power of ellipse-shape
+pwr = 6
+
+#Right half of prior distribution limit
+ellipse_x1 = np.zeros(59)
+ellipse_y1 = np.zeros(59)
+
+for i in range(59):
+    ellipse_x1[i] = i
+    ellipse_y1[i] = math.pow(34**pwr - (34*(i-29)/29)**pwr, math.pow(pwr,-1)) + 51
+    
+plt.plot(ellipse_y1, ellipse_x1, marker = 'X', color = 'b')
+
+#Left half of prior distribution limit
+ellipse_x2 = np.zeros(59)
+ellipse_y2 = np.zeros(59)
+
+for i in range(59):
+    ellipse_x2[i] = i
+    ellipse_y2[i] = -math.pow(34**pwr - (34*(i-29)/29)**pwr, math.pow(pwr,-1)) + 51
+    
+plt.plot(ellipse_y2, ellipse_x2, marker = 'X', color = 'b')
+
+
+#Plot the hard bounding box
+#*******************************************************************************
+bound_sq_x = [0, 0, 58 , 58, 0]
+bound_sq_y = [17, 85, 85, 17, 17]
+
+plt.plot(bound_sq_y, bound_sq_x, marker = '.', color = 'k')
+
+
+#Save Float and Show it
+#*******************************************************************************
 plt.savefig("ground_truth_distribution.png")
 plt.show()
 
