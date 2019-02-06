@@ -14,6 +14,7 @@ import datetime
 import openpyxl
 import random
 import cython
+from multiprocessing import Pool
 
 try:
     import cPickle
@@ -119,8 +120,7 @@ def accumulate_gradients(r_table, grayImage):
                 if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
                     accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1 
   
-    
-
+ 
     print(datetime.datetime.now())  
     
     #Approximately 400-550k iterations
@@ -206,6 +206,7 @@ def GHT(ac_num):
     y1 = 17
     y2 = 85
 #**************************************************************************************************************************
+
     
     #Get specific region of focus (based on prior information)
     dicom_dwn4x = dicom_dwn4x_pp[x1:x2,y1:y2,:] #dicom_dwn4x contains the specific region of focus
@@ -222,7 +223,7 @@ def GHT(ac_num):
     
     #Choose N number of references
     #random_reference_acs = []
-    random_reference_acs = reference_acs[0:1]
+    random_reference_acs = reference_acs[0:5]
 
     
     #while len(random_reference_acs) < 5: 
@@ -250,32 +251,9 @@ def GHT(ac_num):
     
     final_accumulator = accumulator
     
-    
-    #The final accumulator is the likelihood of the detection point being somewhere.
-    #The prior is the function function: prior = (1 - (x-29)^4/29^4 - (y-51)^4/34^4)^1/4
-    final_ac_dim = np.shape(final_accumulator)
-    prior = np.zeros((final_ac_dim[0],final_ac_dim[1]))
-    
-    print(final_ac_dim)
-    
-    #Using Prior Distribution (about average centre of Ground Truth Points)
-    pwr = 4
-    
-    for dim1 in range(final_ac_dim[0]):
-        for dim2 in range(final_ac_dim[1]):
-            if (float(dim1-29)/29)**pwr + (float(dim2 - 34)/34)**pwr <= 1:
-                prior[dim1][dim2] = math.pow(1 - float(dim1 - 29)/29**pwr - float(dim2 - 34)/34**pwr,math.pow(pwr,-1))
-                print(math.pow(1 - (float(dim1 - 29)/29)**pwr - (float(dim2 - 34)/34)**pwr,math.pow(pwr,-1)))
-                #print(prior[dim1][dim2])
-    
-    plt.gray()
-    plt.imshow(prior*250)
-    plt.show()
 
-    print(np.shape(prior))
-
-    for dim3 in range(final_ac_dim[2]):
-        final_accumulator[:,:,dim3] = np.multiply(final_accumulator[:,:,dim3],prior)
+    
+    
     
 #===================================================================================================
 #Blurring the Accumulator Matrix and Query Edge Image
@@ -346,19 +324,10 @@ def GHT(ac_num):
     plt.scatter(y_pts,x_pts, marker='.', color='r')
      
 
-    #Take the top K average 
-    k = 5
-    k_sum_pp = np.zeros(3)
-    for index in range(k):
-        k_sum_pp = np.add(k_sum_pp, m[index][1])
-        print(m[index])
     
-    optimal_pt = (int(k_sum_pp[0]//k) + x1,int(k_sum_pp[1]//k) + y1,int(k_sum_pp[2]//k))
-        
     #print ("Top 40 Most Likely Points (x,y,z,certainty): ", points)
 
-    
-    
+
 #===================================================================================================
 #Non-maximal suppression
 #===================================================================================================
@@ -433,8 +402,7 @@ def GHT(ac_num):
         nms_pts.remove(low_pt)
     '''
     
-    #Original Optimal Point
-    '''
+    
     optimal_pt = [0,0,0]
     min_xdir = float('Inf')
  
@@ -442,10 +410,10 @@ def GHT(ac_num):
     for pt in nms_pts:
         if pt[0] < min_xdir:
             min_xdir = pt[0]
-            optimal_pt = pt[0:3]        
-    '''   
-    
-    '''       
+            optimal_pt = pt[0:3]
+            
+            
+    '''
     for pt in nms_pts:
         heat_map = np.zeros((9,9,3))
         print("The point being investigated is: ", pt)
@@ -518,7 +486,7 @@ def GHT(ac_num):
     detection_threshold = (dicom_dwn4x_pp_dim[0]//64)*(dicom_dwn4x_pp_dim[1]//64)*3
     #print(detection_threshold)
     '''
-    
+
     print("The Final Detection point is: ",optimal_pt)
 
   
@@ -540,7 +508,7 @@ def GHT(ac_num):
     #Put on ground truth point on NMS + Optimal Point Plot
     plt.scatter(ground_truth[ac_num][1], ground_truth[ac_num][0], marker= 'o', color = 'c')
     
-    '''' 
+    '''
     #Add plot for heat map
     for i in range(2):
         try:
@@ -552,7 +520,6 @@ def GHT(ac_num):
         except:
             pass
     '''
-    
     #plt.show()
     
     
@@ -600,9 +567,10 @@ if __name__ == '__main__':
     sheet = book.active
     row_count = sheet.max_row
     
+    global ground_truth
     ground_truth = {}
 
-    for i in range(3,row_count): #divided by 3 as a test 
+    for i in range(3,row_count):
         
         ac_num_loc = sheet.cell(row = i,column = 1)
         ac_num = str(ac_num_loc.value)
@@ -631,6 +599,7 @@ if __name__ == '__main__':
     min_cannys = [30,40,50,60]
     max_cannys = [140,160,180,200]
 
+
     std_dev_canny = 0.5
     
     for std_dev in std_devs:
@@ -651,14 +620,33 @@ if __name__ == '__main__':
                     else:
                         continue
                     
+
+                    #Get the ac_num to put into multi processing
+                    multi_proc_ac_num = []
                     
+                    for ac_num in ac_nums:
+                        if ac_num in ground_truth.keys():
+                            multi_proc_ac_num.append(ac_num)
                     
+                    print(multi_proc_ac_num)
+                    
+                    #Get optimal points through multi processing
+                    p = Pool(processes = 25)
+               
+                    optimal_pts = p.map(GHT,multi_proc_ac_num)
+                    
+                    optimal_pts_dict = {}
+                    #Put into dictionary
+                    for i in range(len(multi_proc_ac_num)):
+                        optimal_pts_dict[multi_proc_ac_num[i]] = optimal_pts[i]
+                    
+                    print(optimal_pts_dict)
+
                     #Go through GHT for the validation set
                     for ac_num in ac_nums:
                         if ac_num in ground_truth.keys():
                             
-                            optimal_pt = GHT(ac_num)
-                            
+                            optimal_pt = optimal_pts_dict[ac_num]
                             print("Detected Optimal Point: ", optimal_pt)
                             print("Ground Truth Point: ", ground_truth[ac_num])
                         
@@ -677,7 +665,7 @@ if __name__ == '__main__':
                     plt.close()
                     
                 
-                    
+                    '''
                     print("======================================")
                     print("********SUMMARY OF PERFORMANCE********")
                     print("======================================")
@@ -693,7 +681,8 @@ if __name__ == '__main__':
                     
                     print("The Accession Numbers for Incorrect Detections are: ", incorrect_ac_num)
                     print("Detection Point Information: ", detection_pt_info)
-                    
+                    '''
+
                     #Output General Information to File
                     f = open(image_dir_name + "/summary.txt","w")
                     f.write("======================================\n")
@@ -739,7 +728,8 @@ if __name__ == '__main__':
                         row = [key,detected_pt[0],detected_pt[1],detected_pt[2]]
 
                         ws1.append(row)
-                    wb.save(dest_filename)              
+                    wb.save(dest_filename)
+                
                     
 #===================================================================================================
 #===================================================================================================

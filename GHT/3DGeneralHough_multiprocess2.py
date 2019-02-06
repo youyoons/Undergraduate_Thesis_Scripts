@@ -255,20 +255,26 @@ def GHT(ac_num):
     #The final accumulator is the likelihood of the detection point being somewhere.
     #The prior is the function function: prior = (1 - (x-29)^4/29^4 - (y-51)^4/34^4)^1/4
     final_ac_dim = np.shape(final_accumulator)
-    prior = np.zeros(final_ac_dim)
+    prior = np.zeros((final_ac_dim[0],final_ac_dim[1]))
     
-    print(final_ac_dim)
+    #print(final_ac_dim)
     
     #Using Prior Distribution (about average centre of Ground Truth Points)
-    pwr = 6
+    pwr = 4
     
     for dim1 in range(final_ac_dim[0]):
         for dim2 in range(final_ac_dim[1]):
-            if (dim1 - 29)/29**6 + (dim2 - 51)/34**6 <= 1:
-                prior[dim1][dim2] = math.pow(1 - float(dim1 - 29)/29**pwr - float(dim2 - 51)/34**pwr,math.pow(pwr,-1))
+            if (float(dim1-29)/29)**pwr + (float(dim2 - 34)/34)**pwr <= 1:
+                prior[dim1][dim2] = math.pow(1 - float(dim1 - 29)/29**pwr - float(dim2 - 34)/34**pwr,math.pow(pwr,-1))
+                #print(math.pow(1 - (float(dim1 - 29)/29)**pwr - (float(dim2 - 34)/34)**pwr,math.pow(pwr,-1)))
+                #print(prior[dim1][dim2])
+   
+
+    #print(np.shape(prior))
+
+    for dim3 in range(final_ac_dim[2]):
+        final_accumulator[:,:,dim3] = np.multiply(final_accumulator[:,:,dim3],prior)
     
-    
-    final_accumulator = np.multiply(final_accumulator,prior)
     
     
 #===================================================================================================
@@ -345,9 +351,9 @@ def GHT(ac_num):
     k_sum_pp = np.zeros(3)
     for index in range(k):
         k_sum_pp = np.add(k_sum_pp, m[index][1])
-        print(m[index])
+        #print(m[index])
     
-    optimal_pt = (int(k_sum_pp[0]//5) + x1,int(k_sum_pp[1]//5) + y1,int(k_sum_pp[2]//5))
+    optimal_pt = (int(k_sum_pp[0]//k) + x1,int(k_sum_pp[1]//k) + y1,int(k_sum_pp[2]//k))
     
     #print ("Top 40 Most Likely Points (x,y,z,certainty): ", points)
 
@@ -566,8 +572,8 @@ def GHT(ac_num):
 #===================================================================================================
 #===================================================================================================
 if __name__ == '__main__':
-    os.chdir("C:\\Users\\yoons\\Documents\\ESC499\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
-    #os.chdir("../DicomSubsampling")    
+    #os.chdir("C:\\Users\\yoons\\Documents\\ESC499\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
+    os.chdir("../DicomSubsampling")    
 
     plt.close()
 #===================================================================================================
@@ -594,7 +600,7 @@ if __name__ == '__main__':
     global ground_truth
     ground_truth = {}
 
-    for i in range(3,row_count): #divided by 3 as a test 
+    for i in range(3,row_count):
         
         ac_num_loc = sheet.cell(row = i,column = 1)
         ac_num = str(ac_num_loc.value)
