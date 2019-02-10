@@ -222,7 +222,7 @@ def GHT(ac_num):
     
     #Choose N number of references
     #random_reference_acs = []
-    random_reference_acs = reference_acs[0:1]
+    random_reference_acs = reference_acs[0:5]
 
     
     #while len(random_reference_acs) < 5: 
@@ -264,19 +264,33 @@ def GHT(ac_num):
     for dim1 in range(final_ac_dim[0]):
         for dim2 in range(final_ac_dim[1]):
             if (float(dim1-29)/29)**pwr + (float(dim2 - 34)/34)**pwr <= 1:
-                prior[dim1][dim2] = math.pow(1 - float(dim1 - 29)/29**pwr - float(dim2 - 34)/34**pwr,math.pow(pwr,-1))
-                print(math.pow(1 - (float(dim1 - 29)/29)**pwr - (float(dim2 - 34)/34)**pwr,math.pow(pwr,-1)))
+                prior[dim1][dim2] = math.pow(1 - (float(dim1 - 29)/29)**pwr - (float(dim2 - 34)/34)**pwr,math.pow(pwr,-1))
+                #print(math.pow(1 - (float(dim1 - 29)/29)**pwr - (float(dim2 - 34)/34)**pwr,math.pow(pwr,-1)))
                 #print(prior[dim1][dim2])
     
-    plt.gray()
-    plt.imshow(prior*250)
-    plt.show()
+    #print(prior[0:15,4:10])
+    #print(final_accumulator[0:15,4:10,0])
+    #print(np.multiply(prior[0:15,4:10],final_accumulator[0:15,4:10,0]))
+    
+    #plt.gray()
+    #plt.imshow(prior*255)
+    #plt.show()
 
     print(np.shape(prior))
 
     for dim3 in range(final_ac_dim[2]):
+        #print("Prior")
+        #print(prior[0:15,4:10])	 
+        #print("Likelihood")
+        #print(final_accumulator[0:15,4:10,dim3])
+        
         final_accumulator[:,:,dim3] = np.multiply(final_accumulator[:,:,dim3],prior)
-    
+        
+        #print("Posterior")
+        #print(final_accumulator[0:15,4:10,dim3])
+        #print(likelihood)
+        #print(final_accumulator[0:15,4:10,dim3])
+        
 #===================================================================================================
 #Blurring the Accumulator Matrix and Query Edge Image
 #===================================================================================================
@@ -575,7 +589,7 @@ def GHT(ac_num):
 #===================================================================================================
 #===================================================================================================
 if __name__ == '__main__':
-    #os.chdir("C:\\Users\\yoons\\Documents\\ESC499\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
+    os.chdir("C:\\Users\\yoons\\Documents\\4th Year Semester 2\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
     os.chdir("../DicomSubsampling")    
 
     plt.close()
