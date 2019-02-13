@@ -222,7 +222,7 @@ def GHT(ac_num):
     
     #Choose N number of references
     #random_reference_acs = []
-    random_reference_acs = reference_acs[0:5]
+    random_reference_acs = reference_acs[:]
 
     
     #while len(random_reference_acs) < 5: 
@@ -607,7 +607,8 @@ if __name__ == '__main__':
 #Read in ground truth values from the ground_truth_detection_pts.xlsx spreadsheet
 #===================================================================================================
     #Get the detection results for the validation set
-    book = openpyxl.load_workbook("../GHT/ground_truth_detection_pts_all.xlsx")
+    #book = openpyxl.load_workbook("../GHT/ground_truth_detection_pts_all.xlsx")
+    book = openpyxl.load_workbook("../GHT/ground_truth_detection_pts_test_set.xlsx")
     sheet = book.active
     row_count = sheet.max_row
     

@@ -222,7 +222,7 @@ def GHT(ac_num):
     
     #Choose N number of references
     #random_reference_acs = []
-    random_reference_acs = reference_acs[0:5]
+    random_reference_acs = reference_acs[:]
 
     
     #while len(random_reference_acs) < 5: 
