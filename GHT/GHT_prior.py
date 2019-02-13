@@ -613,7 +613,7 @@ if __name__ == '__main__':
     
     ground_truth = {}
 
-    for i in range(3,row_count): #divided by 3 as a test 
+    for i in range(3,row_count+1): #divided by 3 as a test 
         
         ac_num_loc = sheet.cell(row = i,column = 1)
         ac_num = str(ac_num_loc.value)

@@ -428,7 +428,7 @@ if __name__ == '__main__':
     global ground_truth
     ground_truth = {}
 
-    for i in range(3,row_count):
+    for i in range(3,row_count+1):
         
         ac_num_loc = sheet.cell(row = i,column = 1)
         ac_num = str(ac_num_loc.value)
