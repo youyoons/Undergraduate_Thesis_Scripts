@@ -49,9 +49,7 @@ def build_r_table(image, origin):
     '''
     edges = canny_edges_3d(image)
     
-    #Takes (47,40) Edges and calculates the gradients using sobel
     phi, psi = gradient_orientation(edges)
-    #print("Phi Dim: ", phi.shape)
     
     r_table = defaultdict(list)
     for (i,j,k),value in np.ndenumerate(edges):
@@ -216,16 +214,8 @@ def GHT(ac_num):
     
     
     #Choose N number of references
-    #random_reference_acs = []
     random_reference_acs = reference_acs[:]
 
-    
-    #while len(random_reference_acs) < 5: 
-    #    index = random.randint(0,len(reference_acs)-1)
-        
-    #    if reference_acs[index] not in random_reference_acs:
-    #        random_reference_acs.append(reference_acs[index])
-    
     for reference_ac in random_reference_acs:
         print("Current Reference: ", reference_ac)
         
@@ -421,7 +411,6 @@ def GHT(ac_num):
 #===================================================================================================
 #===================================================================================================
 if __name__ == '__main__':
-    #os.chdir("C:\\Users\\yoons\\Documents\\ESC499\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
     os.chdir("../DicomSubsampling")    
 
     plt.close()
@@ -543,24 +532,6 @@ if __name__ == '__main__':
                     
                     plt.close()
                     
-                
-                    '''
-                    print("======================================")
-                    print("********SUMMARY OF PERFORMANCE********")
-                    print("======================================")
-                
-                    print("Min Canny Threshold: ", MIN_CANNY_THRESHOLD)
-                    print("Max Canny Threshold: ", MAX_CANNY_THRESHOLD)
-                    print("Sigma Canny: ", std_dev_canny)
-                    print("Sigma Accumulator: ", std_dev)
-                    print("Sigma Edges: ", std_dev_edges)
-                
-                    print("The squared error for this trial on the validation set is :", error)
-                    print("The detection rate is: " + str(correct_detections) + "/" + str(len(ground_truth.keys())))
-                    
-                    print("The Accession Numbers for Incorrect Detections are: ", incorrect_ac_num)
-                    print("Detection Point Information: ", detection_pt_info)
-                    '''
 
                     #Output General Information to File
                     f = open(image_dir_name + "/summary.txt","w")
