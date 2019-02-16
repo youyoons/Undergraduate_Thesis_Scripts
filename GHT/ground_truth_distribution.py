@@ -7,7 +7,7 @@ import math
 #os.chdir("C:\\Users\\yoons\\Documents\\4th Year Semester 2\\ESC499 - Thesis\\Undergraduate_Thesis_Scripts\\GHT")
 os.chdir("C:\\Users\\yoons\\Documents\\ESC499\\Undergraduate_Thesis_Scripts\\GHT")
 
-book = openpyxl.load_workbook("../GHT/ground_truth_detection_pts_all.xlsx")
+book = openpyxl.load_workbook("../GHT/ground_truth_detection_pts_validation_set.xlsx")
 sheet = book.active
 row_count = sheet.max_row
 

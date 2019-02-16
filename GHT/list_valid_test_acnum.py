@@ -7,7 +7,7 @@ valid_acnum = []
 test_acnum = []
 
 #Get list of accession numbers in the validation set
-book = openpyxl.load_workbook("../GHT/ground_truth_detection_pts_all.xlsx")
+book = openpyxl.load_workbook("../GHT/ground_truth_detection_pts_validation_set.xlsx")
 sheet = book.active
 row_count = sheet.max_row
 
