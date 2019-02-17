@@ -2,6 +2,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import math
+from scipy.ndimage.filters import gaussian_filter
 
 
 #os.chdir("C:\\Users\\yoons\\Documents\\4th Year Semester 2\\Undergraduate_Thesis_Scripts\\GHT")
@@ -22,6 +23,8 @@ y_c = (y2+y1)//2
 #Width
 x_w = (x2-x1)//2
 y_w = (y2-y1)//2
+
+
 pwr = 4
 
 #Just use widths as we are starting from the hard cut-out region
@@ -29,10 +32,11 @@ for dim1 in range(x2-x1):
     for dim2 in range(y2-y1):
         if (float(dim1-x_w)/x_w)**pwr + (float(dim2 - y_w)/y_w)**pwr <= 1:
             prior[dim1][dim2] = math.pow(1 - (float(dim1 - x_w)/x_w)**pwr - (float(dim2 - y_w)/y_w)**pwr,math.pow(pwr,-1))
-      
-            
+
+
+
 plt.gray()
-plt.imshow(prior)
+plt.imshow(prior[:,:,])
 plt.show()
 
-print(prior[0:20,4:10])
+#print(prior[0:20,4:10])
