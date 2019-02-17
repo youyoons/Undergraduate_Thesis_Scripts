@@ -244,13 +244,27 @@ def GHT(ac_num):
     print(final_ac_dim)
     
     #Using Prior Distribution (about average centre of Ground Truth Points)
+    '''
     pwr = 4
     
     for dim1 in range(final_ac_dim[0]):
         for dim2 in range(final_ac_dim[1]):
             if (float(dim1-29)/29)**pwr + (float(dim2 - 34)/34)**pwr <= 1:
                 prior[dim1][dim2] = math.pow(1 - (float(dim1 - 29)/29)**pwr - (float(dim2 - 34)/34)**pwr,math.pow(pwr,-1))
-
+    '''
+    
+    x_mu = 29
+    x_sig = 5.348
+    
+    y_mu = 34
+    y_sig = 8.752
+    
+    x, y = np.mgrid[0:58,0:68]
+    x_pwr = (x - x_mu)**2/(2*x_sig**2)
+    y_pwr = (y - y_mu)**2/(2*y_sig**2)
+    
+    prior = np.exp(-(x_pwr+y_pwr))
+    
     print(np.shape(prior))
 
     for dim3 in range(final_ac_dim[2]):

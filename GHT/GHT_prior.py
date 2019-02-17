@@ -259,6 +259,7 @@ def GHT(ac_num):
     print(final_ac_dim)
     
     #Using Prior Distribution (about average centre of Ground Truth Points)
+    '''
     pwr = 4
     
     for dim1 in range(final_ac_dim[0]):
@@ -267,27 +268,33 @@ def GHT(ac_num):
                 prior[dim1][dim2] = math.pow(1 - (float(dim1 - 29)/29)**pwr - (float(dim2 - 34)/34)**pwr,math.pow(pwr,-1))
                 #print(math.pow(1 - (float(dim1 - 29)/29)**pwr - (float(dim2 - 34)/34)**pwr,math.pow(pwr,-1)))
                 #print(prior[dim1][dim2])
+    '''
+    x_mu = 29
+    x_sig = 5.348
     
-    #print(prior[0:15,4:10])
-    #print(final_accumulator[0:15,4:10,0])
-    #print(np.multiply(prior[0:15,4:10],final_accumulator[0:15,4:10,0]))
+    y_mu = 34
+    y_sig = 8.752
     
-    #plt.gray()
-    #plt.imshow(prior*255)
-    #plt.show()
+    x, y = np.mgrid[0:58,0:68]
+    x_pwr = (x - x_mu)**2/(2*x_sig**2)
+    y_pwr = (y - y_mu)**2/(2*y_sig**2)
+    
+    prior = np.exp(-(x_pwr+y_pwr))
+        
+    
 
     print(np.shape(prior))
 
     for dim3 in range(final_ac_dim[2]):
         #print("Prior")
         #print(prior[0:15,4:10])	 
-        #print("Likelihood")
-        #print(final_accumulator[0:15,4:10,dim3])
+        print("Likelihood")
+        print(final_accumulator[0:15,4:10,dim3])
         
         final_accumulator[:,:,dim3] = np.multiply(final_accumulator[:,:,dim3],prior)
         
-        #print("Posterior")
-        #print(final_accumulator[0:15,4:10,dim3])
+        print("Posterior")
+        print(final_accumulator[0:15,4:10,dim3])
         #print(likelihood)
         #print(final_accumulator[0:15,4:10,dim3])
         
@@ -400,50 +407,6 @@ def GHT(ac_num):
     print("Non-Maximal Suppression Points: ", nms_pts)
   
 
-#===================================================================================================
-#Normalized Cross Correlation and Heat Map Generation
-#===================================================================================================
-    #Sliding reference across volume around detected points to find accurate point
-    #optimal_pt = [0,0]
-    max_cross_correl_val = -float('inf')
-    
-    heat_maps = []
-    
-    '''
-    #Generate the edge references if they do not exist in the directory "no_Fractures"
-    for reference_ac in random_reference_acs:
-        edge_reference_name = "no_fractures/edge_references/edge" + "_es" + str(std_dev_edges) + "_min" + str(MIN_CANNY_THRESHOLD) + "_max" + str(MAX_CANNY_THRESHOLD) + "_cs" + str(std_dev_canny) + "_" + reference_ac
-        
-        
-        
-        if not os.path.isfile(edge_reference_name):
-            try:
-                reference_vol_pp1 = cPickle.load(open("no_fractures/" + reference_ac,"rb"),encoding = 'latin1')
-            except:
-                reference_vol_pp1 = cPickle.load(open("no_fractures/" + reference_ac,"rb"))
-            
-            reference_vol_pp2 = np.array(reference_vol_pp1)
-            
-            reference_vol_edges = canny_edges_3d(reference_vol_pp2)
-            reference_vol_edges_blurred = gaussian_filter(np.multiply(reference_vol_edges,50),sigma = std_dev_edges, order = 0)
-            
-            cPickle.dump(reference_vol_edges_blurred, open(edge_reference_name,"wb"),protocol = 2)
-            #print("no_fractures/edge_" + reference_ac)
-            
-    '''
-    
-    '''
-    #Method of removing the lowest detection point if there is more than one before doing normalized cross correlation
-    if len(nms_pts) > 1:
-        low_pt = nms_pts[0]
-        
-        for pt in nms_pts:
-            if pt[0] > low_pt[0]:
-                low_pt = pt
-        
-        nms_pts.remove(low_pt)
-    '''
-    
     #Original Optimal Point
     '''
     optimal_pt = [0,0,0]
@@ -456,79 +419,7 @@ def GHT(ac_num):
             optimal_pt = pt[0:3]        
     '''   
     
-    '''       
-    for pt in nms_pts:
-        heat_map = np.zeros((9,9,3))
-        print("The point being investigated is: ", pt)
 
-        
-
-        for i in range(-dicom_dwn4x_pp_dim[0]//32,dicom_dwn4x_pp_dim[0]//32 + 1):
-            for j in range(-dicom_dwn4x_pp_dim[1]//32,dicom_dwn4x_pp_dim[1]//32 + 1):
-                for k in range(-1,2):
-                    cross_correl_val = 0
-                    
-                    for reference_ac in random_reference_acs:
-                        try:
-                            reference_vol_pp = cPickle.load(open(edge_reference_name,"rb"),encoding = 'latin1')
-                        except:
-                            reference_vol_pp = cPickle.load(open(edge_reference_name,"rb"))
-                        #reference_dim is the dimension of the edge reference
-                        reference_dim = np.shape(reference_vol_pp)
-                        reference_vol = np.ndarray.flatten(reference_vol_pp)
-                        
-                        #Get bounds to compare on the query image
-                        x1 = pt[0] - reference_dim[0]//2 + i
-                        x2 = x1 + reference_dim[0]
-                        
-                        y1 = pt[1] - reference_dim[1]//2 + j
-                        y2 = y1 + reference_dim[1]
-                        
-                        z1 = pt[2] - reference_dim[2]//2 + k
-                        z2 = z1 + reference_dim[2]
-                        
-                        #Use the Canny edge version of the query image for cross correlation
-                        query_vol_pp = np.array(query_edges_blurred[x1:x2,y1:y2,z1:z2])
-                        query_vol = np.ndarray.flatten(query_vol_pp)
- 
-                        query_dim = np.shape(query_vol_pp)
-                        
-                        #Exit current slide location if out of bounds
-                        if x1 < 0 or y1 < 0 or z1 < 0:
-                            break
-                        
-                        if x2 > query_edges_dim[0] or y2 > query_edges_dim[1] or z2 > query_edges_dim[2]:
-                            break
-
-                        #Use norms to normalize the vectors for cross-correlation
-                        #print(np.linalg.norm(reference_vol))
-                        #print(np.linalg.norm(query_vol))
-                        reference_vol_norm = reference_vol/np.linalg.norm(reference_vol)
-                        query_vol_norm = query_vol/np.linalg.norm(query_vol)
-                        
-                        
-                        if (np.dot(reference_vol_norm, query_vol_norm)) < 0:
-                            print("ALERT NEGATIVE DOT PRODUCT VIOLATION")
-                        
-                        cross_correl_val = cross_correl_val + np.dot(reference_vol_norm, query_vol_norm)
-                    
-                    heat_map[i+4,j+4,k+1] = cross_correl_val
-                    if cross_correl_val > max_cross_correl_val:
-                        #print(max_cross_correl_val)
-                        max_cross_correl_val = cross_correl_val
-                        #print("The cross correlation value is: ", cross_correl_val)
-                        optimal_pt = [pt[0]+i,pt[1]+j, pt[2]+k]
-                        #print("The optimal point currently is: ", optimal_pt)
-        
-        
-        #Append heat_map
-        heat_maps.append(heat_map)
-    
-    #Set Detection Threshold for Specific Accession Number
-    global detection_threshold
-    detection_threshold = (dicom_dwn4x_pp_dim[0]//64)*(dicom_dwn4x_pp_dim[1]//64)*3
-    #print(detection_threshold)
-    '''
     
     print("The Final Detection point is: ",optimal_pt)
 
@@ -551,18 +442,6 @@ def GHT(ac_num):
     #Put on ground truth point on NMS + Optimal Point Plot
     plt.scatter(ground_truth[ac_num][1], ground_truth[ac_num][0], marker= 'o', color = 'c')
     
-    '''' 
-    #Add plot for heat map
-    for i in range(2):
-        try:
-            heat_map = heat_maps[i]
-            heat_map_norm = heat_map
-            fig.add_subplot(2,4,7+i)
-            plt.title('Heat Map')
-            plt.imshow(heat_map_norm[:,:,1])
-        except:
-            pass
-    '''
     
     #plt.show()
     
@@ -571,9 +450,6 @@ def GHT(ac_num):
     #Save Figure
     #print(os.getcwd())
     print(image_dir_name)
-    #print(image_file_name)
-    #plt.savefig(os.path.join(image_dir_name, image_file_name + ".png"))
-    #print(os.path.join(image_dir_name, image_file_name + ".png"))
     plt.savefig(image_dir_name + "/" + image_file_name + ".png")
     
     return optimal_pt
@@ -586,7 +462,7 @@ def GHT(ac_num):
 #===================================================================================================
 #===================================================================================================
 if __name__ == '__main__':
-    os.chdir("C:\\Users\\yoons\\Documents\\4th Year Semester 2\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
+    os.chdir("C:\\Users\\yoons\\Documents\\ESC499\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
     os.chdir("../DicomSubsampling")    
 
     plt.close()
