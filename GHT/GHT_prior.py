@@ -108,7 +108,7 @@ def accumulate_gradients(r_table, grayImage):
 
     edges_dim = np.shape(edges)
 
-    print(datetime.datetime.now())
+    #print(datetime.datetime.now())
     
     
     for (i,j,k),value in np.ndenumerate(edges):
@@ -121,10 +121,7 @@ def accumulate_gradients(r_table, grayImage):
   
     
 
-    print(datetime.datetime.now())  
-    
-    #Approximately 400-550k iterations
-    #print("Number of Iterations in Accumulate Gradients: ", iterations)
+    #print(datetime.datetime.now())  
 
     return accumulator
 
@@ -137,8 +134,6 @@ def general_hough_closure(reference_image):
     '''
     
     referencePoint = (reference_image.shape[0]/2, reference_image.shape[1]/2, reference_image.shape[2]/2)
-    
-    #print("Reference Point: ", referencePoint)
     
     r_table = build_r_table(reference_image, referencePoint)
     
@@ -314,7 +309,7 @@ def GHT(ac_num):
     plot_y = ground_truth[ac_num][1]
     plot_z = ground_truth[ac_num][2]
 
-    # Plot Top 40 points
+    #Plot Top 40 points
     fig = plt.figure(num = image_file_name, figsize = (24,12))
     plt.gray()
 
@@ -322,27 +317,22 @@ def GHT(ac_num):
 
     fig.add_subplot(2,4,1)
     plt.title('Query Image [Ground Truth Point: (' + str(plot_x) + ', ' + str(plot_y) + ', ' + str(plot_z) + ')]')
-    #plt.imshow(dicom_dwn4x_pp[:,:,dicom_dwn4x_pp_dim[2]//2])
     plt.imshow(dicom_dwn4x_pp[:,:,plot_z])
     
     fig.add_subplot(2,4,2)
     plt.title('Query Image Edges')
-    #plt.imshow(query_edges[:,:,dicom_dwn4x_pp_dim[2]//2])
     plt.imshow(query_edges[:,:,plot_z])
     
     fig.add_subplot(2,4,3)
     plt.title('Query Image Edges Blurred')
-    #plt.imshow(query_edges_blurred[:,:,dicom_dwn4x_pp_dim[2]//2])
     plt.imshow(query_edges_blurred[:,:,plot_z])
     
     fig.add_subplot(2,4,4)
     plt.title('Final Accumulator')
-    #plt.imshow(final_accumulator[:,:,dicom_dwn4x_dim[2]//2])
     plt.imshow(final_accumulator[:,:,plot_z])
      
     fig.add_subplot(2,4,5)
     plt.title('Detection of Top 40 Points')
-    #plt.imshow(dicom_dwn4x_pp[:,:,dicom_dwn4x_dim[2]//2])
     plt.imshow(dicom_dwn4x_pp[:,:,plot_z])
 
 
@@ -416,7 +406,6 @@ def GHT(ac_num):
     #Plot Optimal and Ground Truth Points
     fig.add_subplot(2,4,6)
     plt.title('Sagittal View [Optimal Point: (' + str(optimal_pt[0]) + ', ' + str(optimal_pt[1]) + ', ' + str(optimal_pt[2]) + ')]')
-    #plt.imshow(dicom_dwn4x_pp[:,:,dicom_dwn4x_pp_dim[2]//2])
     plt.imshow(dicom_dwn4x_pp[:,:,plot_z])
 
 
@@ -496,7 +485,7 @@ if __name__ == '__main__':
     
     ground_truth = {}
 
-    for i in range(3,row_count+1): #divided by 3 as a test 
+    for i in range(3,row_count+1): 
         
         ac_num_loc = sheet.cell(row = i,column = 1)
         ac_num = str(ac_num_loc.value)
