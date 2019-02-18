@@ -254,16 +254,18 @@ def GHT(ac_num):
 #===================================================================================================
 #Initial Plots and Top 40 Points for Visualization Purposes
 #===================================================================================================
+    plot_x = ground_truth[ac_num][0]
+    plot_y = ground_truth[ac_num][1]
     plot_z = ground_truth[ac_num][2]
 
-    #Plot up to top 40 points
+    # Plot Top 40 points
     fig = plt.figure(num = image_file_name, figsize = (24,12))
     plt.gray()
 
     fig.suptitle(image_file_name)
 
     fig.add_subplot(2,4,1)
-    plt.title('Query Image [Slice: ' + str(plot_z) + ']')
+    plt.title('Query Image [Ground Truth Point: (' + str(plot_x) + ', ' + str(plot_y) + ', ' + str(plot_z) + ')]')
     #plt.imshow(dicom_dwn4x_pp[:,:,dicom_dwn4x_pp_dim[2]//2])
     plt.imshow(dicom_dwn4x_pp[:,:,plot_z])
     
@@ -305,7 +307,7 @@ def GHT(ac_num):
     
     plt.scatter(y_pts,x_pts, marker='.', color='r')
      
-    
+
     #Take the top K average 
     k = 5
     k_sum_pp = np.zeros(3)
@@ -314,17 +316,11 @@ def GHT(ac_num):
         print(m[index])
     
     optimal_pt = (int(k_sum_pp[0]//k) + x1,int(k_sum_pp[1]//k) + y1,int(k_sum_pp[2]//k))
-
-
+    
+    
 #===================================================================================================
 #Non-maximal suppression
 #===================================================================================================
-    #Plot NMS points
-    fig.add_subplot(2,4,6)
-    plt.title('Non-Maximal Suppression and Optimal Points')
-    #plt.imshow(dicom_dwn4x_pp[:,:,dicom_dwn4x_pp_dim[2]//2])
-    plt.imshow(dicom_dwn4x_pp[:,:,plot_z])
-
     #Perform non-maximal suppression
     nms_pts = []
     
@@ -346,15 +342,27 @@ def GHT(ac_num):
     print("Non-Maximal Suppression Points: ", nms_pts)
   
 
-#===================================================================================================
-#Normalized Cross Correlation and Heat Map Generation
-#===================================================================================================
-    #Sliding reference across volume around detected points to find accurate point
-    #optimal_pt = [0,0]
-    max_cross_correl_val = -float('inf')
-    
+    #Original Optimal Point
+    '''
+    optimal_pt = [0,0,0]
+    min_xdir = float('Inf')
+ 
 
+    for pt in nms_pts:
+        if pt[0] < min_xdir:
+            min_xdir = pt[0]
+            optimal_pt = pt[0:3]        
+    '''  
+    
     print("The Final Detection point is: ",optimal_pt)
+    
+     
+    #Plot Optimal and Ground Truth Points
+    fig.add_subplot(2,4,6)
+    plt.title('Sagittal View [Optimal Point: (' + str(optimal_pt[0]) + ', ' + str(optimal_pt[1]) + ', ' + str(optimal_pt[2]) + ')]')
+    #plt.imshow(dicom_dwn4x_pp[:,:,dicom_dwn4x_pp_dim[2]//2])
+    plt.imshow(dicom_dwn4x_pp[:,:,plot_z])
+
 
   
     #Plot non-maximal suppression points
@@ -368,13 +376,26 @@ def GHT(ac_num):
         nms_z_pts.append(pt[2])    
 
 
-    plt.scatter(nms_y_pts,nms_x_pts, marker='o', color='g')
+    #plt.scatter(nms_y_pts,nms_x_pts, marker='o', color='g')
     
     plt.scatter(optimal_pt[1],optimal_pt[0], marker='X', color='m')
     
     #Put on ground truth point on NMS + Optimal Point Plot
     plt.scatter(ground_truth[ac_num][1], ground_truth[ac_num][0], marker= 'o', color = 'c')
     
+    
+    #Add Coronal and Axial Views
+    fig.add_subplot(2,4,7)
+    plt.title('Coronal View')
+    plt.imshow(dicom_dwn4x_pp[:,plot_y,:])
+    plt.scatter(optimal_pt[2],optimal_pt[0], marker='X', color='m')
+    plt.scatter(ground_truth[ac_num][2], ground_truth[ac_num][0], marker= 'o', color = 'c')
+    
+    fig.add_subplot(2,4,8)
+    plt.title('Axial View')
+    plt.imshow(dicom_dwn4x_pp[plot_x,:,:])
+    plt.scatter(optimal_pt[2],optimal_pt[1], marker='X', color='m')
+    plt.scatter(ground_truth[ac_num][2], ground_truth[ac_num][1], marker= 'o', color = 'c')
     
     
     #Save Figure
