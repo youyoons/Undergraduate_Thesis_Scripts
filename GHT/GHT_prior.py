@@ -171,7 +171,6 @@ def GHT(ac_num):
 #===================================================================================================
 #Obtaining the list of references to use and bounding the Region of Interest
 #===================================================================================================
-    #Get the references that will be used for Cervical Spine Vertebrae Detection
     reference_acs = []
 
     image_file_name = ac_num + "_accumulator_sigma_" + str(std_dev) + "_edge_sigma_" + str(std_dev_edges)  + "_canny_sigma_" + str(std_dev_canny) + "_min_canny_" + str(MIN_CANNY_THRESHOLD) + "_max_canny_" + str(MAX_CANNY_THRESHOLD)
@@ -194,13 +193,15 @@ def GHT(ac_num):
     dicom_dwn4x_pp_dim = np.shape(dicom_dwn4x_pp)
     print("Size of Downsized Dicom Input: ", dicom_dwn4x_pp_dim)
 
-#**************************************************************************************************************************
+
+#===================================================================================================
+#Use Prior to get a hard cutoff region
+#===================================================================================================
     #Specify Region of Interest (Hard Blocking of Region Based on Prior Information)
     x1 = 0
     x2 = 58
     y1 = 17
     y2 = 85
-#**************************************************************************************************************************
     
     #Get specific region of focus (based on prior information)
     dicom_dwn4x = dicom_dwn4x_pp[x1:x2,y1:y2,:] #dicom_dwn4x contains the specific region of focus
@@ -238,7 +239,10 @@ def GHT(ac_num):
     
     final_accumulator = accumulator
     
-    
+
+#===================================================================================================
+#Using Prior Distribution
+#===================================================================================================    
     #The final accumulator is the likelihood of the detection point being somewhere.
     #The prior is the function function: prior = (1 - (x-29)^4/29^4 - (y-51)^4/34^4)^1/4
     final_ac_dim = np.shape(final_accumulator)
@@ -246,48 +250,59 @@ def GHT(ac_num):
     
     print(final_ac_dim)
     
-    #Using Prior Distribution (about average centre of Ground Truth Points)
+#===================================================================================================
+#Blurring the Accumulator Matrix and Query Edge Image
+#===================================================================================================  
+    prior_type = "ell_p4"
+    alpha = 1
     
-    pwr = 4
+    if prior_type == "ell_p4":
+        pwr = 4
+        
+        for dim1 in range(final_ac_dim[0]):
+            for dim2 in range(final_ac_dim[1]):
+                if (float(dim1-29)/29)**pwr + (float(dim2 - 34)/34)**pwr <= 1:
+                    prior[dim1][dim2] = math.pow(1 - (float(dim1 - 29)/29)**pwr - (float(dim2 - 34)/34)**pwr,math.pow(pwr,-1))
+                    #print(math.pow(1 - (float(dim1 - 29)/29)**pwr - (float(dim2 - 34)/34)**pwr,math.pow(pwr,-1)))
+                    #print(prior[dim1][dim2])
+                    
+        for dim3 in range(final_ac_dim[2]):
+            #print("Prior")
+            #print(prior[0:15,4:10])	 
+            #print("Likelihood")
+            #print(final_accumulator[0:15,4:10,dim3])
+            
+            #final_accumulator[:,:,dim3] = np.multiply(final_accumulator[:,:,dim3],prior)
+            final_accumulator[:,:,dim3] = final_accumulator[:,:,dim3] + alpha*prior
+            
+            #print("Posterior")
+            #print(final_accumulator[0:15,4:10,dim3])
+            #print(likelihood)
+            #print(final_accumulator[0:15,4:10,dim3])
     
-    for dim1 in range(final_ac_dim[0]):
-        for dim2 in range(final_ac_dim[1]):
-            if (float(dim1-29)/29)**pwr + (float(dim2 - 34)/34)**pwr <= 1:
-                prior[dim1][dim2] = math.pow(1 - (float(dim1 - 29)/29)**pwr - (float(dim2 - 34)/34)**pwr,math.pow(pwr,-1))
-                #print(math.pow(1 - (float(dim1 - 29)/29)**pwr - (float(dim2 - 34)/34)**pwr,math.pow(pwr,-1)))
-                #print(prior[dim1][dim2])
+    elif prior_type == "gaussian":
+        x_mu = 29.5
+        x_sig = 5.250
+        
+        y_mu = 34.5
+        y_sig = 8.708
+        
+        x, y = np.mgrid[0:58,0:68]
+        x_pwr = (x - x_mu)**2/(2*x_sig**2)
+        y_pwr = (y - y_mu)**2/(2*y_sig**2)
+        
+        prior_pp = np.exp(-(x_pwr+y_pwr))
+        
+        prior = np.log(prior_pp)
     
-    '''
-    #Gaussian Prior
-    x_mu = 29
-    x_sig = 5.348
-    
-    y_mu = 34
-    y_sig = 8.752
-    
-    x, y = np.mgrid[0:58,0:68]
-    x_pwr = (x - x_mu)**2/(2*x_sig**2)
-    y_pwr = (y - y_mu)**2/(2*y_sig**2)
-    
-    prior = np.exp(-(x_pwr+y_pwr))
-    '''
-    
+        for dim3 in range(final_ac_dim[2]):
+            final_accumulator[:,:,dim3] = final_accumulator[:,:,dim3] + alpha*prior
 
-    print(np.shape(prior))
-
-    for dim3 in range(final_ac_dim[2]):
-        #print("Prior")
-        #print(prior[0:15,4:10])	 
-        #print("Likelihood")
-        #print(final_accumulator[0:15,4:10,dim3])
+    
+    else:
+        pass
         
-        final_accumulator[:,:,dim3] = np.multiply(final_accumulator[:,:,dim3],prior)
-        
-        #print("Posterior")
-        #print(final_accumulator[0:15,4:10,dim3])
-        #print(likelihood)
-        #print(final_accumulator[0:15,4:10,dim3])
-        
+            
 #===================================================================================================
 #Blurring the Accumulator Matrix and Query Edge Image
 #===================================================================================================
@@ -309,34 +324,10 @@ def GHT(ac_num):
     plot_y = ground_truth[ac_num][1]
     plot_z = ground_truth[ac_num][2]
 
-    #Plot Top 40 points
-    fig = plt.figure(num = image_file_name, figsize = (24,12))
-    plt.gray()
 
-    fig.suptitle(image_file_name)
-
-    fig.add_subplot(2,4,1)
-    plt.title('Query Image [Ground Truth Point: (' + str(plot_x) + ', ' + str(plot_y) + ', ' + str(plot_z) + ')]')
-    plt.imshow(dicom_dwn4x_pp[:,:,plot_z])
-    
-    fig.add_subplot(2,4,2)
-    plt.title('Query Image Edges')
-    plt.imshow(query_edges[:,:,plot_z])
-    
-    fig.add_subplot(2,4,3)
-    plt.title('Query Image Edges Blurred')
-    plt.imshow(query_edges_blurred[:,:,plot_z])
-    
-    fig.add_subplot(2,4,4)
-    plt.title('Final Accumulator')
-    plt.imshow(final_accumulator[:,:,plot_z])
-     
-    fig.add_subplot(2,4,5)
-    plt.title('Detection of Top 40 Points')
-    plt.imshow(dicom_dwn4x_pp[:,:,plot_z])
-
-
-    #Get top 40 results that can be filtered out
+#===================================================================================================
+#Get top 40 points
+#===================================================================================================
     m = n_max(final_accumulator, 40)
 
     points = []
@@ -350,11 +341,11 @@ def GHT(ac_num):
         x_pts.append(pt[1][0]+x1)
         y_pts.append(pt[1][1]+y1) 
         z_pts.append(pt[1][2])
-    
-    plt.scatter(y_pts,x_pts, marker='.', color='r')
-     
 
-    #Take the top K average 
+
+#===================================================================================================
+#Take the top K average 
+#===================================================================================================
     k = 5
     k_sum_pp = np.zeros(3)
     for index in range(k):
@@ -365,7 +356,7 @@ def GHT(ac_num):
     
     
 #===================================================================================================
-#Non-maximal suppression
+#Get the Non-maximal Suppression Points
 #===================================================================================================
     #Perform non-maximal suppression
     nms_pts = []
@@ -403,13 +394,7 @@ def GHT(ac_num):
     print("The Final Detection point is: ",optimal_pt)
     
      
-    #Plot Optimal and Ground Truth Points
-    fig.add_subplot(2,4,6)
-    plt.title('Sagittal View [Optimal Point: (' + str(optimal_pt[0]) + ', ' + str(optimal_pt[1]) + ', ' + str(optimal_pt[2]) + ')]')
-    plt.imshow(dicom_dwn4x_pp[:,:,plot_z])
 
-
-  
     #Plot non-maximal suppression points
     nms_x_pts = [] 
     nms_y_pts = []
@@ -421,32 +406,82 @@ def GHT(ac_num):
         nms_z_pts.append(pt[2])    
 
 
-    #plt.scatter(nms_y_pts,nms_x_pts, marker='o', color='g')
+#===================================================================================================
+#Set up 3x3 Plot and put Query Image, Edge Image, Accumulator Slice
+#=================================================================================================== 
+    fig = plt.figure(num = image_file_name, figsize = (18,18))
+    plt.gray()
+
+    fig.suptitle(image_file_name)
+
+    fig.add_subplot(3,3,1)
+    plt.title('Query Image [Ground Truth Point: (' + str(plot_x) + ', ' + str(plot_y) + ', ' + str(plot_z) + ')]')
+    plt.imshow(dicom_dwn4x_pp[:,:,plot_z])
     
-    plt.scatter(optimal_pt[1],optimal_pt[0], marker='X', color='m')
+    fig.add_subplot(3,3,2)
+    plt.title('Query Image Edges')
+    plt.imshow(query_edges[:,:,plot_z])
     
-    #Put on ground truth point on NMS + Optimal Point Plot
-    plt.scatter(ground_truth[ac_num][1], ground_truth[ac_num][0], marker= 'o', color = 'c')
-    
-    
-    #Add Coronal and Axial Views
-    fig.add_subplot(2,4,7)
-    plt.title('Coronal View')
+    fig.add_subplot(3,3,3)
+    plt.title('Final Accumulator')
+    plt.imshow(final_accumulator[:,:,plot_z])
+
+
+#===================================================================================================
+#Plot Top 40 Points
+#===================================================================================================   
+    #Sagittal View
+    fig.add_subplot(3,3,4)
+    plt.title('Top 40 Points (Sagittal)')
+    plt.imshow(dicom_dwn4x_pp[:,:,plot_z])
+    plt.scatter(y_pts,x_pts, marker='.', color='g')
+
+    #Coronal View
+    fig.add_subplot(3,3,5)
+    plt.title('Top 40 Points (Coronal)')
     plt.imshow(dicom_dwn4x_pp[:,plot_y,:])
-    plt.scatter(optimal_pt[2],optimal_pt[0], marker='X', color='m')
-    plt.scatter(ground_truth[ac_num][2], ground_truth[ac_num][0], marker= 'o', color = 'c')
+    plt.scatter(z_pts,x_pts, marker='.', color = 'g')
     
-    fig.add_subplot(2,4,8)
-    plt.title('Axial View')
+    #Axial View
+    fig.add_subplot(3,3,6)
+    plt.title('Top 40 Points (Axial)')
     plt.imshow(dicom_dwn4x_pp[plot_x,:,:])
-    plt.scatter(optimal_pt[2],optimal_pt[1], marker='X', color='m')
-    plt.scatter(ground_truth[ac_num][2], ground_truth[ac_num][1], marker= 'o', color = 'c')
+    plt.scatter(z_pts,y_pts, marker='.', color = 'g')
+    
+
+
+#===================================================================================================
+#Plot Detected (Optimal) and Ground Truth Points
+#===================================================================================================
+    #Sagittal View
+    fig.add_subplot(3,3,7)
+    plt.title('(Sagittal View) [Detected Point: (' + str(optimal_pt[0]) + ', ' + str(optimal_pt[1]) + ', ' + str(optimal_pt[2]) + ')]')
+    plt.imshow(dicom_dwn4x_pp[:,:,plot_z])
+    #plt.scatter(nms_y_pts,nms_x_pts, marker='o', color='g')
+    plt.scatter(ground_truth[ac_num][1], ground_truth[ac_num][0], marker= 'o', color = 'y')
+    plt.scatter(optimal_pt[1],optimal_pt[0], marker='X', color='r')
+    
+    #Coronal View
+    fig.add_subplot(3,3,8)
+    plt.title('Detected Point (Coronal View)')
+    plt.imshow(dicom_dwn4x_pp[:,plot_y,:])
+    plt.scatter(ground_truth[ac_num][2], ground_truth[ac_num][0], marker= 'o', color = 'y')
+    plt.scatter(optimal_pt[2],optimal_pt[0], marker='X', color='r')
+    
+    #Axial View
+    fig.add_subplot(3,3,9)
+    plt.title('Detected Point (Axial View)')
+    plt.imshow(dicom_dwn4x_pp[plot_x,:,:])
+    plt.scatter(ground_truth[ac_num][2], ground_truth[ac_num][1], marker= 'o', color = 'y')
+    plt.scatter(optimal_pt[2],optimal_pt[1], marker='X', color='r')
+
     
     
     #Save Figure
-    print(image_dir_name)
+    print("Current Image: " + image_dir_name + "/" + image_file_name + ".png")
     plt.savefig(image_dir_name + "/" + image_file_name + ".png")
     
+    #Return the Detected Point
     return optimal_pt
 
 #===================================================================================================
@@ -457,7 +492,8 @@ def GHT(ac_num):
 #===================================================================================================
 #===================================================================================================
 if __name__ == '__main__':
-    os.chdir("C:\\Users\\yoons\\Documents\\ESC499\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
+    #os.chdir("C:\\Users\\yoons\\Documents\\ESC499\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
+    os.chdir("C:\\Users\\yoons\\Documents\\4th Year Semester 2\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
     os.chdir("../DicomSubsampling")    
 
     plt.close()
