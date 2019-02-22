@@ -14,6 +14,7 @@ import datetime
 import openpyxl
 import random
 import cython
+from multiprocessing import Pool
 
 try:
     import cPickle
@@ -48,9 +49,7 @@ def build_r_table(image, origin):
     '''
     edges = canny_edges_3d(image)
     
-    #Takes (47,40) Edges and calculates the gradients using sobel
     phi, psi = gradient_orientation(edges)
-    #print("Phi Dim: ", phi.shape)
     
     r_table = defaultdict(list)
     for (i,j,k),value in np.ndenumerate(edges):
@@ -82,7 +81,6 @@ def canny_edges_3d(grayImage):
     for i in range(dim[0]):
         for j in range(dim[1]):
             for k in range(dim[2]):
-                #edges[i,j,k] = (edges_x[i,j,k] and edges_y[i,j,k]) or (edges_x[i,j,k] and edges_z[i,j,k]) or (edges_y[i,j,k] and edges_z[i,j,k])
                 edges[i,j,k] = (edges_x[i,j,k]) or (edges_y[i,j,k]) or (edges_z[i,j,k])
     
     
@@ -154,7 +152,6 @@ def test_general_hough(gh, reference_image, query):
     '''
     Uses a GH closure to detect shapes in an image and create nice output
     '''
-    #query_image = imread(query, flatten=True)
     query_image = query
     query_dim = np.shape(query)
     reference_dim = np.shape(reference_image)
@@ -169,7 +166,7 @@ def test_general_hough(gh, reference_image, query):
 #===================================================================================================
 def GHT(ac_num):
 #===================================================================================================
-#Obtaining the list of references to use and bounding the Region of Interest
+#Obtaining the list of references to use
 #===================================================================================================
     reference_acs = []
 
@@ -182,14 +179,17 @@ def GHT(ac_num):
             if file_name.find(str(ac_num)) == -1:
                 reference_acs.append(file_name)
     
+#===================================================================================================
+#Opening the Pickle File
+#===================================================================================================    
     print("Accession Number: ", ac_num)
-    
     
     #Open Downsized Pickle File Containing DICOM Scan
     try:
         dicom_dwn4x_pp = cPickle.load(open("no_fractures/dicom_3d_" + ac_num + "_dwn4x.pkl","rb"),encoding = 'latin1')
     except:
         dicom_dwn4x_pp = cPickle.load(open("no_fractures/dicom_3d_" + ac_num + "_dwn4x.pkl","rb"))
+    
     dicom_dwn4x_pp_dim = np.shape(dicom_dwn4x_pp)
     print("Size of Downsized Dicom Input: ", dicom_dwn4x_pp_dim)
 
@@ -199,9 +199,9 @@ def GHT(ac_num):
 #===================================================================================================
     #Specify Region of Interest (Hard Blocking of Region Based on Prior Information)
     x1 = 0
-    x2 = 58
+    x2 = 60
     y1 = 17
-    y2 = 85
+    y2 = 87
     
     #Get specific region of focus (based on prior information)
     dicom_dwn4x = dicom_dwn4x_pp[x1:x2,y1:y2,:] #dicom_dwn4x contains the specific region of focus
@@ -228,7 +228,6 @@ def GHT(ac_num):
             reference = cPickle.load(open("no_fractures/" + reference_ac,"rb"),encoding = 'latin1')
         except:
             reference = cPickle.load(open("no_fractures/" + reference_ac,"rb"))
-        #print("Size of Reference Image: ", np.shape(reference))
 
         detect_s = general_hough_closure(reference)
         
@@ -236,7 +235,8 @@ def GHT(ac_num):
         temp_accumulator = test_general_hough(detect_s, reference, dicom_dwn4x)
         
         accumulator = np.maximum(accumulator,temp_accumulator)
-    
+        
+    #Set final_accumulator matrix
     final_accumulator = accumulator
     
 
@@ -250,10 +250,8 @@ def GHT(ac_num):
     
     print(final_ac_dim)
     
-#===================================================================================================
-#Blurring the Accumulator Matrix and Query Edge Image
-#===================================================================================================  
-    prior_type = "ell_p4"
+    #Modify these parameters
+    prior_type = "empirical"
     alpha = 1
     
     if prior_type == "ell_p4":
@@ -293,11 +291,14 @@ def GHT(ac_num):
         
         prior_pp = np.exp(-(x_pwr+y_pwr))
         
-        prior = np.log(prior_pp)
+        #prior = np.log(prior_pp)
+        prior = prior_pp
     
         for dim3 in range(final_ac_dim[2]):
             final_accumulator[:,:,dim3] = final_accumulator[:,:,dim3] + alpha*prior
-
+    
+    elif prior_type == "empirical":
+        pass
     
     else:
         pass
@@ -492,9 +493,14 @@ def GHT(ac_num):
 #===================================================================================================
 #===================================================================================================
 if __name__ == '__main__':
-    #os.chdir("C:\\Users\\yoons\\Documents\\ESC499\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
-    os.chdir("C:\\Users\\yoons\\Documents\\4th Year Semester 2\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
-    os.chdir("../DicomSubsampling")    
+    mp = False
+    
+    if mp:
+        os.chdir("../DicomSubsampling")
+    else:    
+        os.chdir("C:\\Users\\yoons\\Documents\\ESC499\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
+        #os.chdir("C:\\Users\\yoons\\Documents\\4th Year Semester 2\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
+
 
     plt.close()
 #===================================================================================================
@@ -547,7 +553,7 @@ if __name__ == '__main__':
     #Set Hyperparameters to be validated with validation set
     std_devs = [1.0]
     std_devs_edges = [0]
-    min_cannys = [30,40,50,60]
+    min_cannys = [40,50]
     max_cannys = [140,160,180,200]
 
     std_dev_canny = 0.5
@@ -570,33 +576,73 @@ if __name__ == '__main__':
                     else:
                         continue
                     
-                    
-                    
-                    #Go through GHT for the validation set
-                    for ac_num in ac_nums:
-                        if ac_num in ground_truth.keys():
-                            
-                            optimal_pt = GHT(ac_num)
-                            
-                            print("Detected Optimal Point: ", optimal_pt)
-                            print("Ground Truth Point: ", ground_truth[ac_num])
-                        
-                            curr_error = abs(np.linalg.norm(np.subtract(optimal_pt,ground_truth[ac_num])))**2 
-                            error = error + curr_error
-                            
-                            #Can adjust threshold for correct detection accordingly
-                            if curr_error <= 20.0:
-                                correct_detections = correct_detections + 1
-                            else:
-                                incorrect_ac_num.append(ac_num)
+                    if mp == False:
+                        #Go through GHT for the validation set
+                        for ac_num in ac_nums:
+                            if ac_num in ground_truth.keys():
                                 
-                            #Keep record of the information
-                            detection_pt_info[ac_num] = [optimal_pt, ground_truth[ac_num], curr_error]
+                                optimal_pt = GHT(ac_num)
+                                
+                                print("Detected Optimal Point: ", optimal_pt)
+                                print("Ground Truth Point: ", ground_truth[ac_num])
+                            
+                                curr_error = abs(np.linalg.norm(np.subtract(optimal_pt,ground_truth[ac_num])))**2 
+                                error = error + curr_error
+                                
+                                #Can adjust threshold for correct detection accordingly
+                                if curr_error <= 20.0:
+                                    correct_detections = correct_detections + 1
+                                else:
+                                    incorrect_ac_num.append(ac_num)
+                                    
+                                #Keep record of the information
+                                detection_pt_info[ac_num] = [optimal_pt, ground_truth[ac_num], curr_error]
+                    else:
+                        #Get the ac_num to put into multi processing
+                        multi_proc_ac_num = []
+                        
+                        for ac_num in ac_nums:
+                            if ac_num in ground_truth.keys():
+                                multi_proc_ac_num.append(ac_num)
+                        
+                        print(multi_proc_ac_num)
+                        
+                        #Get optimal points through multi processing
+                        p = Pool(processes = 25)
+                
+                        optimal_pts = p.map(GHT,multi_proc_ac_num)
+                        
+                        optimal_pts_dict = {}
+                        #Put into dictionary
+                        for i in range(len(multi_proc_ac_num)):
+                            optimal_pts_dict[multi_proc_ac_num[i]] = optimal_pts[i]
+                        
+                        print(optimal_pts_dict)
+    
+                        #Go through GHT for the validation set
+                        for ac_num in ac_nums:
+                            if ac_num in ground_truth.keys():
+                                
+                                optimal_pt = optimal_pts_dict[ac_num]
+                                print("Detected Optimal Point: ", optimal_pt)
+                                print("Ground Truth Point: ", ground_truth[ac_num])
+                            
+                                curr_error = abs(np.linalg.norm(np.subtract(optimal_pt,ground_truth[ac_num])))**2 
+                                error = error + curr_error
+                                
+                                #Can adjust threshold for correct detection accordingly
+                                if curr_error <= 20.0:
+                                    correct_detections = correct_detections + 1
+                                else:
+                                    incorrect_ac_num.append(ac_num)
+                                    
+                                #Keep record of the information
+                                detection_pt_info[ac_num] = [optimal_pt, ground_truth[ac_num], curr_error]
+                        
                     
                     plt.close()
                     
                 
-                    
                     print("======================================")
                     print("********SUMMARY OF PERFORMANCE********")
                     print("======================================")
@@ -612,6 +658,7 @@ if __name__ == '__main__':
                     
                     print("The Accession Numbers for Incorrect Detections are: ", incorrect_ac_num)
                     print("Detection Point Information: ", detection_pt_info)
+                    
                     
                     #Output General Information to File
                     f = open(image_dir_name + "/summary.txt","w")
