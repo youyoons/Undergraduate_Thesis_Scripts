@@ -239,7 +239,11 @@ def GHT(ac_num):
     #Set final_accumulator matrix
     final_accumulator = accumulator
     
-
+    '''    
+    plt.gray()
+    plt.imshow(final_accumulator[:,:,ground_truth[ac_num][2]])
+    plt.savefig("before_prior.png")
+    '''
 #===================================================================================================
 #Using Prior Distribution
 #===================================================================================================    
@@ -271,7 +275,7 @@ def GHT(ac_num):
             #print(final_accumulator[0:15,4:10,dim3])
             
             #final_accumulator[:,:,dim3] = np.multiply(final_accumulator[:,:,dim3],prior)
-            final_accumulator[:,:,dim3] = final_accumulator[:,:,dim3] + alpha*prior
+            final_accumulator[:,:,dim3] = final_accumulator[:,:,dim3]*prior
             
             #print("Posterior")
             #print(final_accumulator[0:15,4:10,dim3])
@@ -298,11 +302,37 @@ def GHT(ac_num):
             final_accumulator[:,:,dim3] = final_accumulator[:,:,dim3] + alpha*prior
     
     elif prior_type == "empirical":
-        pass
+        print("EMPIRICAL*************************")
+        #print(final_accumulator[25:35,30:40,10])
+        print(x_hist)
+        print(y_hist)
+        
+        for dim1 in range(final_ac_dim[0]):
+            for dim2 in range(final_ac_dim[1]):
+                x_key = dim1//5
+                y_key = dim2//5
+                
+                if (x_key in x_hist.keys()) and (y_key in y_hist.keys()):
+                    prior_val = x_hist[x_key]*y_hist[y_key]
+                else:
+                    prior_val = 0
+                
+                prior[dim1][dim2] = prior_val
+    
+        for dim3 in range(final_ac_dim[2]):
+            final_accumulator[:,:,dim3] = final_accumulator[:,:,dim3] + 100*prior
     
     else:
         pass
-        
+    
+    #print(final_accumulator[25:35,30:40,10])
+    
+    
+    plt.gray()
+    plt.imshow(prior)
+    plt.savefig("prior_empirical.png")
+    plt.close()
+    
             
 #===================================================================================================
 #Blurring the Accumulator Matrix and Query Edge Image
@@ -347,6 +377,7 @@ def GHT(ac_num):
 #===================================================================================================
 #Take the top K average 
 #===================================================================================================
+    print("Top 5 Average")
     k = 5
     k_sum_pp = np.zeros(3)
     for index in range(k):
@@ -354,7 +385,7 @@ def GHT(ac_num):
         print(m[index])
     
     optimal_pt = (int(k_sum_pp[0]//k) + x1,int(k_sum_pp[1]//k) + y1,int(k_sum_pp[2]//k))
-    
+    print("The optimal point is: ", optimal_pt)
     
 #===================================================================================================
 #Get the Non-maximal Suppression Points
@@ -475,12 +506,34 @@ def GHT(ac_num):
     plt.imshow(dicom_dwn4x_pp[plot_x,:,:])
     plt.scatter(ground_truth[ac_num][2], ground_truth[ac_num][1], marker= 'o', color = 'y')
     plt.scatter(optimal_pt[2],optimal_pt[1], marker='X', color='r')
-
     
     
     #Save Figure
     print("Current Image: " + image_dir_name + "/" + image_file_name + ".png")
     plt.savefig(image_dir_name + "/" + image_file_name + ".png")
+    
+    
+#===================================================================================================
+#Add accumulator values around detected point to list in order to get a distribution
+#===================================================================================================
+    print(optimal_pt)
+    for i in range(-2,3):
+        for j in range(-2,3):
+            for k in range(-2,3):  
+                print(final_accumulator[optimal_pt[0]-x1+i,optimal_pt[1]-y1+j,optimal_pt[2]+k])
+                accum_dist.append(final_accumulator[optimal_pt[0]-x1+i,optimal_pt[1]-y1+j,optimal_pt[2]+k])
+    
+    arr = np.array(final_accumulator)
+    
+    total_accum.append(arr.flatten())
+    '''
+    try:
+        total_accum = total_accum + arr.flatten()
+    except:
+        total_accum.append(arr.flatten())
+    '''
+    print(np.shape(total_accum))
+    
     
     #Return the Detected Point
     return optimal_pt
@@ -493,13 +546,13 @@ def GHT(ac_num):
 #===================================================================================================
 #===================================================================================================
 if __name__ == '__main__':
-    mp = False
+    mp = False 	
     
     if mp:
         os.chdir("../DicomSubsampling")
     else:    
-        os.chdir("C:\\Users\\yoons\\Documents\\ESC499\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
-        #os.chdir("C:\\Users\\yoons\\Documents\\4th Year Semester 2\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
+        #os.chdir("C:\\Users\\yoons\\Documents\\ESC499\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
+        os.chdir("C:\\Users\\yoons\\Documents\\4th Year Semester 2\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
 
 
     plt.close()
@@ -527,8 +580,8 @@ if __name__ == '__main__':
     
     ground_truth = {}
 
-    for i in range(3,row_count+1): 
-        
+    #for i in range(3,row_count+1): 
+    for i in range(3,row_count+1):
         ac_num_loc = sheet.cell(row = i,column = 1)
         ac_num = str(ac_num_loc.value)
         
@@ -538,6 +591,39 @@ if __name__ == '__main__':
         
         if (x != None) and (y != None) and (z != None):
             ground_truth[ac_num] = [x,y,z]
+    
+    global x_hist
+    global y_hist
+    global accum_dist #distribution of accumulator matrix around detected points
+    global total_accum
+    accum_dist = []
+    total_accum = []
+    
+    x_hist = {}
+    y_hist = {}
+    
+    #Creating Histogram Regarding Prior to be used in GHT
+    for gt_pt in ground_truth.values():
+        #print(gt_pt)
+        x_val = (gt_pt[0]-0)//5
+        y_val = (gt_pt[1]-17)//5
+        
+        #print(x_val,y_val)
+        
+        if x_val not in x_hist.keys():
+            x_hist[x_val] = 0.01
+        else:
+            x_hist[x_val] = x_hist[x_val] + 0.01 #There are 100 points
+            
+        if y_val not in y_hist.keys():
+            y_hist[y_val] = 0.01
+        else:
+            y_hist[y_val] = y_hist[y_val] + 0.01
+       
+    
+    print(x_hist)
+    print(y_hist)
+        
     
 #===================================================================================================
 #Compute Detection Points, compare with ground truth to get error and detection rate
@@ -553,8 +639,8 @@ if __name__ == '__main__':
     #Set Hyperparameters to be validated with validation set
     std_devs = [1.0]
     std_devs_edges = [0]
-    min_cannys = [40,50]
-    max_cannys = [140,160,180,200]
+    min_cannys = [40]
+    max_cannys = [160]
 
     std_dev_canny = 0.5
     
@@ -566,6 +652,9 @@ if __name__ == '__main__':
                     correct_detections = 0
                     incorrect_ac_num = []
                     detection_pt_info = {}
+                    
+                    #accum_dist = []
+                    #total_accum = []
                     
                     image_dir_name = "accumulator_sigma_" + str(std_dev) + "_edge_sigma_" + str(std_dev_edges) + "_min_canny_" + str(MIN_CANNY_THRESHOLD) + "_max_canny_" + str(MAX_CANNY_THRESHOLD)
                     
@@ -707,5 +796,65 @@ if __name__ == '__main__':
                         ws1.append(row)
                     wb.save(dest_filename)              
                     
+                    
+                    #Print Info About Accum Distribution
+                    accum_local_dist_plot = {}
+                    accum_dist_plot = {}
+                    
+                    #print(len(accum_dist))
+                    #print(accum_dist)
+                    #print(np.shape(total_accum))
+
+                    
+                    for index in range(len(accum_dist)):
+                        temp_ind = accum_dist[index]//5
+                        
+                        if temp_ind not in accum_local_dist_plot.keys():
+                            accum_local_dist_plot[temp_ind] = 1
+                        else:
+                            accum_local_dist_plot[temp_ind] = accum_local_dist_plot[temp_ind] + 1
+                    
+                    arr2 = np.array(total_accum)
+                    total_accum_flat = arr2.flatten()
+                    print(np.shape(arr2))
+                    print("SHAPPEEEE")
+                    print(np.shape(total_accum_flat))
+
+                    
+                    for index in range(len(total_accum_flat)):
+                        temp_ind = int(total_accum_flat[index])//5
+                        
+                        if temp_ind not in accum_dist_plot.keys():
+                            accum_dist_plot[temp_ind] = 1
+                        else:
+                            accum_dist_plot[temp_ind] = accum_dist_plot[temp_ind] + 1
+                    
+                    #for key in accum_dist_plot.keys():
+                    #    print(key)
+                    
+                    print("============")
+                    #print(accum_dist_plot)
+                    #print(accum_local_dist_plot)
+                    
+                    print("============")
+                    accum_dist_hist = []
+                    
+                    #print(accum_dist_plot.keys())
+                    #print(max(accum_dist_plot.keys()))
+                    
+                    for index in range(int(max(accum_dist_plot.keys()))):
+                        if index in accum_dist_plot.keys() and index in accum_local_dist_plot.keys():
+                            accum_prob = accum_local_dist_plot[index]/accum_dist_plot[index]
+                            accum_dist_hist.append([index,accum_prob])
+                        else:
+                            accum_dist_hist.append([index,0])
+                            
+                    print(accum_dist_hist)
+                            
+                            
+                    
+                    
+                    
+                        
 #===================================================================================================
 #===================================================================================================
