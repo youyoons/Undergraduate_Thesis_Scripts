@@ -22,14 +22,14 @@ except ImportError:
     import pickle as cPickle
 
 
-def gradient_orientation(image):
+def gradient_orientation(scan):
     '''
-    Calculate the gradient orientation for edge point in the image
+    Calculate the gradient orientation for edge point in the scan
     '''
     #scipy.ndimage.sobel
-    dx = sobel(image, axis=0, mode='constant')	
-    dy = sobel(image, axis=1, mode='constant')
-    dz = sobel(image, axis=1, mode='constant')
+    dx = sobel(scan, axis=0, mode='constant')	
+    dy = sobel(scan, axis=1, mode='constant')
+    dz = sobel(scan, axis=1, mode='constant')
     
     #For 3D instead of a single gradient value, we need two angles that define a normal vector
     #Phi is the angle between the positive x-axis to the projection of the normal vector the x-y plane (around +z)
@@ -39,15 +39,15 @@ def gradient_orientation(image):
     psi = np.arctan2(np.sqrt(dx*dx + dy*dy), dz) * 180 / np.pi
     
 
-    gradient = np.zeros(image.shape)
+    gradient = np.zeros(scan.shape)
     
     return phi, psi
 
-def build_r_table(image, origin):
+def build_r_table(referenceImage, origin):
     '''
-    Build the R-table from the given shape image and a reference point
+    Build the R-table from the given referenceImage and a reference point
     '''
-    edges = canny_edges_3d(image)
+    edges = canny_edges_3d(referenceImage)
     
     phi, psi = gradient_orientation(edges)
     
@@ -59,23 +59,23 @@ def build_r_table(image, origin):
     
     return r_table
 
-def canny_edges_3d(grayImage):
-    dim = np.shape(grayImage)
+def canny_edges_3d(scan):
+    dim = np.shape(scan)
     
-    edges_x = np.zeros(grayImage.shape, dtype=bool) 
-    edges_y = np.zeros(grayImage.shape, dtype=bool) 
-    edges_z = np.zeros(grayImage.shape, dtype=bool) 
-    edges = np.zeros(grayImage.shape, dtype=bool) 
+    edges_x = np.zeros(scan.shape, dtype=bool) 
+    edges_y = np.zeros(scan.shape, dtype=bool) 
+    edges_z = np.zeros(scan.shape, dtype=bool) 
+    edges = np.zeros(scan.shape, dtype=bool) 
     
 
     for i in range(dim[0]):
-        edges_x[i,:,:] = canny(grayImage[i,:,:], low_threshold=MIN_CANNY_THRESHOLD, high_threshold=MAX_CANNY_THRESHOLD, sigma = std_dev_canny)
+        edges_x[i,:,:] = canny(scan[i,:,:], low_threshold=MIN_CANNY_THRESHOLD, high_threshold=MAX_CANNY_THRESHOLD, sigma = std_dev_canny)
    
     for j in range(dim[1]):
-        edges_y[:,j,:] = canny(grayImage[:,j,:], low_threshold=MIN_CANNY_THRESHOLD, high_threshold=MAX_CANNY_THRESHOLD, sigma = std_dev_canny)
+        edges_y[:,j,:] = canny(scan[:,j,:], low_threshold=MIN_CANNY_THRESHOLD, high_threshold=MAX_CANNY_THRESHOLD, sigma = std_dev_canny)
         
     for k in range(dim[2]):
-        edges_z[:,:,k] = canny(grayImage[:,:,k], low_threshold=MIN_CANNY_THRESHOLD, high_threshold=MAX_CANNY_THRESHOLD, sigma = std_dev_canny)
+        edges_z[:,:,k] = canny(scan[:,:,k], low_threshold=MIN_CANNY_THRESHOLD, high_threshold=MAX_CANNY_THRESHOLD, sigma = std_dev_canny)
     
     
     for i in range(dim[0]):
@@ -86,20 +86,19 @@ def canny_edges_3d(grayImage):
     
     return edges
 
-#grayImage is queryImage
-def accumulate_gradients(r_table, grayImage):
+
+def accumulate_gradients(r_table, queryImage):
     '''
     Perform a General Hough Transform with the given image and R-table
     '''
     
     #Get edges matrix from Canny 
-    edges = canny_edges_3d(grayImage) 
+    edges = canny_edges_3d(queryImage) 
     
     #Get gradient angles
     phi, psi = gradient_orientation(edges)
     
-    accumulator = np.zeros(grayImage.shape)
-    #int accum_i
+    accumulator = np.zeros(queryImage.shape)
     accum_i = 0
     accum_j = 0 
     accum_k = 0
@@ -116,9 +115,7 @@ def accumulate_gradients(r_table, grayImage):
                 accum_i, accum_j, accum_k = i+r[0], j+r[1], k+r[2]
                 if accum_i < accumulator.shape[0] and accum_j < accumulator.shape[1] and accum_k < accumulator.shape[2]:
                     accumulator[int(accum_i), int(accum_j), int(accum_k)] += 1 
-  
-    
-
+                    
     #print(datetime.datetime.now())  
 
     return accumulator
@@ -142,7 +139,7 @@ def general_hough_closure(reference_image):
 
 def n_max(a, n):
     '''
-    Return the N max elements and indices in a
+    Return the N max elements and indices in a list
     '''
     indices = (-a.ravel()).argsort()[:n]
     indices = (np.unravel_index(i, a.shape) for i in indices)
@@ -170,7 +167,7 @@ def GHT(ac_num):
 #===================================================================================================
     reference_acs = []
 
-    image_file_name = ac_num + "_accumulator_sigma_" + str(std_dev) + "_edge_sigma_" + str(std_dev_edges)  + "_canny_sigma_" + str(std_dev_canny) + "_min_canny_" + str(MIN_CANNY_THRESHOLD) + "_max_canny_" + str(MAX_CANNY_THRESHOLD)
+    image_file_name = ac_num + "_accumulator_sigma_" + str(std_dev) + "_min_canny_" + str(MIN_CANNY_THRESHOLD) + "_max_canny_" + str(MAX_CANNY_THRESHOLD) + "_prior_" + prior_type
 
     for file_name in os.listdir("no_fractures"):
         #The name should have "reference" in it but no "edge" in it
@@ -215,10 +212,11 @@ def GHT(ac_num):
     #Initialize Accumulator that will be used to get top points
     accumulator = np.zeros(dicom_dwn4x_dim)
     
-    
     #Choose N number of references
     random_reference_acs = reference_acs[:]
 
+    #Set up dictionary to store temp accumulator matrices
+    temp_accumulator_dict = {}
 
     for reference_ac in random_reference_acs:
         print("Current Reference: ", reference_ac)
@@ -234,10 +232,35 @@ def GHT(ac_num):
         #Use max pooling on accumulator matrix
         temp_accumulator = test_general_hough(detect_s, reference, dicom_dwn4x)
         
+        temp_accumulator_dict[reference_ac] = temp_accumulator
+        
         accumulator = np.maximum(accumulator,temp_accumulator)
         
     #Set final_accumulator matrix
     final_accumulator = accumulator
+    
+    #Choose Top 3 References that are Most Relevant to Final Accumulator Matrix
+    similarity_index = -float('inf')
+    most_similar_reference_ac = None
+    
+    for reference_ac in temp_accumulator_dict.keys():
+        temp_similarity_index = (temp_accumulator_dict[reference_ac] == final_accumulator).sum()
+        #print("Reference AC")
+        #print(reference_ac, temp_similarity_index)
+
+        if temp_similarity_index > similarity_index:
+            similarity_index = temp_similarity_index
+            most_similar_reference_ac = reference_ac
+        
+    #Set most similar reference to plot later
+    try:
+        most_similar_reference = cPickle.load(open("no_fractures/" + most_similar_reference_ac,"rb"),encoding = 'latin1')
+    except:
+        most_similar_reference = cPickle.load(open("no_fractures/" + most_similar_reference_ac,"rb"))
+
+    print("The most similar Reference is: ", most_similar_reference_ac)
+        
+    
     
     '''    
     plt.gray()
@@ -255,7 +278,6 @@ def GHT(ac_num):
     print(final_ac_dim)
     
     #Modify these parameters
-    prior_type = "empirical"
     alpha = 1
     
     if prior_type == "ell_p4":
@@ -441,20 +463,20 @@ def GHT(ac_num):
 #===================================================================================================
 #Set up 3x3 Plot and put Query Image, Edge Image, Accumulator Slice
 #=================================================================================================== 
-    fig = plt.figure(num = image_file_name, figsize = (18,18))
+    fig = plt.figure(num = image_file_name, figsize = (24,18))
     plt.gray()
 
     fig.suptitle(image_file_name)
 
-    fig.add_subplot(3,3,1)
+    fig.add_subplot(4,3,1)
     plt.title('Query Image [Ground Truth Point: (' + str(plot_x) + ', ' + str(plot_y) + ', ' + str(plot_z) + ')]')
     plt.imshow(dicom_dwn4x_pp[:,:,plot_z])
     
-    fig.add_subplot(3,3,2)
+    fig.add_subplot(4,3,2)
     plt.title('Query Image Edges')
     plt.imshow(query_edges[:,:,plot_z])
     
-    fig.add_subplot(3,3,3)
+    fig.add_subplot(4,3,3)
     plt.title('Final Accumulator')
     plt.imshow(final_accumulator[:,:,plot_z])
 
@@ -463,19 +485,19 @@ def GHT(ac_num):
 #Plot Top 40 Points
 #===================================================================================================   
     #Sagittal View
-    fig.add_subplot(3,3,4)
+    fig.add_subplot(4,3,4)
     plt.title('Top 40 Points (Sagittal)')
     plt.imshow(dicom_dwn4x_pp[:,:,plot_z])
     plt.scatter(y_pts,x_pts, marker='.', color='g')
 
     #Coronal View
-    fig.add_subplot(3,3,5)
+    fig.add_subplot(4,3,5)
     plt.title('Top 40 Points (Coronal)')
     plt.imshow(dicom_dwn4x_pp[:,plot_y,:])
     plt.scatter(z_pts,x_pts, marker='.', color = 'g')
     
     #Axial View
-    fig.add_subplot(3,3,6)
+    fig.add_subplot(4,3,6)
     plt.title('Top 40 Points (Axial)')
     plt.imshow(dicom_dwn4x_pp[plot_x,:,:])
     plt.scatter(z_pts,y_pts, marker='.', color = 'g')
@@ -486,7 +508,7 @@ def GHT(ac_num):
 #Plot Detected (Optimal) and Ground Truth Points
 #===================================================================================================
     #Sagittal View
-    fig.add_subplot(3,3,7)
+    fig.add_subplot(4,3,7)
     plt.title('(Sagittal View) [Detected Point: (' + str(optimal_pt[0]) + ', ' + str(optimal_pt[1]) + ', ' + str(optimal_pt[2]) + ')]')
     plt.imshow(dicom_dwn4x_pp[:,:,plot_z])
     #plt.scatter(nms_y_pts,nms_x_pts, marker='o', color='g')
@@ -494,19 +516,27 @@ def GHT(ac_num):
     plt.scatter(optimal_pt[1],optimal_pt[0], marker='X', color='r')
     
     #Coronal View
-    fig.add_subplot(3,3,8)
+    fig.add_subplot(4,3,8)
     plt.title('Detected Point (Coronal View)')
     plt.imshow(dicom_dwn4x_pp[:,plot_y,:])
     plt.scatter(ground_truth[ac_num][2], ground_truth[ac_num][0], marker= 'o', color = 'y')
     plt.scatter(optimal_pt[2],optimal_pt[0], marker='X', color='r')
     
     #Axial View
-    fig.add_subplot(3,3,9)
+    fig.add_subplot(4,3,9)
     plt.title('Detected Point (Axial View)')
     plt.imshow(dicom_dwn4x_pp[plot_x,:,:])
     plt.scatter(ground_truth[ac_num][2], ground_truth[ac_num][1], marker= 'o', color = 'y')
     plt.scatter(optimal_pt[2],optimal_pt[1], marker='X', color='r')
     
+
+#===================================================================================================
+#Plot Most Influential References
+#===================================================================================================
+    fig.add_subplot(4,3,10)
+    plt.title('Most Influential Reference')
+    plt.imshow(most_similar_reference[:,:,np.shape(most_similar_reference)[2]//2])
+
     
     #Save Figure
     print("Current Image: " + image_dir_name + "/" + image_file_name + ".png")
@@ -520,12 +550,16 @@ def GHT(ac_num):
     for i in range(-2,3):
         for j in range(-2,3):
             for k in range(-2,3):  
-                print(final_accumulator[optimal_pt[0]-x1+i,optimal_pt[1]-y1+j,optimal_pt[2]+k])
+                #print(final_accumulator[optimal_pt[0]-x1+i,optimal_pt[1]-y1+j,optimal_pt[2]+k])
                 accum_dist.append(final_accumulator[optimal_pt[0]-x1+i,optimal_pt[1]-y1+j,optimal_pt[2]+k])
+
+    #print(np.shape(final_accumulator))
     
     arr = np.array(final_accumulator)
+    arr_flatten = arr.flatten()
     
-    total_accum.append(arr.flatten())
+    global total_accum
+    total_accum = np.concatenate((total_accum, arr_flatten))
     '''
     try:
         total_accum = total_accum + arr.flatten()
@@ -546,6 +580,8 @@ def GHT(ac_num):
 #===================================================================================================
 #===================================================================================================
 if __name__ == '__main__':
+    global prior_type
+    prior_type = "empirical"
     mp = False 	
     
     if mp:
@@ -580,8 +616,8 @@ if __name__ == '__main__':
     
     ground_truth = {}
 
-    #for i in range(3,row_count+1): 
-    for i in range(3,row_count+1):
+    for i in range(3,row_count+1): 
+    #for i in range(3,row_count+1):
         ac_num_loc = sheet.cell(row = i,column = 1)
         ac_num = str(ac_num_loc.value)
         
@@ -653,10 +689,8 @@ if __name__ == '__main__':
                     incorrect_ac_num = []
                     detection_pt_info = {}
                     
-                    #accum_dist = []
-                    #total_accum = []
                     
-                    image_dir_name = "accumulator_sigma_" + str(std_dev) + "_edge_sigma_" + str(std_dev_edges) + "_min_canny_" + str(MIN_CANNY_THRESHOLD) + "_max_canny_" + str(MAX_CANNY_THRESHOLD)
+                    image_dir_name = "prior_" + prior_type + "_min_canny_" + str(MIN_CANNY_THRESHOLD) + "_max_canny_" + str(MAX_CANNY_THRESHOLD) + "_accumulator_sigma_" + str(std_dev) 
                     
                     print("Currently on: " + image_dir_name)
                     
