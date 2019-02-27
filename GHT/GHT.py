@@ -243,30 +243,53 @@ def GHT(ac_num):
     similarity_index = -float('inf')
     most_similar_reference_ac = None
     
+    similarity_index_dict = {}
+    
     for reference_ac in temp_accumulator_dict.keys():
         temp_similarity_index = (temp_accumulator_dict[reference_ac] == final_accumulator).sum()
-        #print("Reference AC")
-        #print(reference_ac, temp_similarity_index)
-
+        print("Reference AC")
+        print(reference_ac, temp_similarity_index)
+        
+        similarity_index_dict[reference_ac] = temp_similarity_index
+        
         if temp_similarity_index > similarity_index:
             similarity_index = temp_similarity_index
             most_similar_reference_ac = reference_ac
-        
-    #Set most similar reference to plot later
-    try:
-        most_similar_reference = cPickle.load(open("no_fractures/" + most_similar_reference_ac,"rb"),encoding = 'latin1')
-    except:
-        most_similar_reference = cPickle.load(open("no_fractures/" + most_similar_reference_ac,"rb"))
+     
+    
+    #Get top 3 similarity values
+    top3_references = sorted(similarity_index_dict, key=similarity_index_dict.get, reverse=True)[:3]
+    
+    print("The most similar references are: ", top3_references)
+    
+    #See below for plotting of top 3 references
 
-    print("The most similar Reference is: ", most_similar_reference_ac)
-        
-    
-    
     '''    
     plt.gray()
     plt.imshow(final_accumulator[:,:,ground_truth[ac_num][2]])
     plt.savefig("before_prior.png")
     '''
+    
+#===================================================================================================
+#Blurring the Accumulator Matrix and Query Edge Image
+#===================================================================================================
+    #Blur the final accumulator matrix
+    final_accumulator = gaussian_filter(final_accumulator,sigma = std_dev, order = 0)
+
+    #Blur the edge image for the whole dwn4x
+    query_edges = canny_edges_3d(dicom_dwn4x_pp)
+
+    query_edges_dim = np.shape(query_edges)
+    
+    query_edges_blurred = gaussian_filter(np.multiply(query_edges,50),sigma = std_dev_edges, order = 0)
+
+    #Convert final_accumulator into probability
+    final_accumulator = np.multiply(final_accumulator,float(1/45))
+    final_accumulator = np.subtract(final_accumulator,3)
+    final_accumulator = np.clip(final_accumulator,0,1)
+
+
+
 #===================================================================================================
 #Using Prior Distribution
 #===================================================================================================    
@@ -324,7 +347,7 @@ def GHT(ac_num):
             final_accumulator[:,:,dim3] = final_accumulator[:,:,dim3] + alpha*prior
     
     elif prior_type == "empirical":
-        print("EMPIRICAL*************************")
+        print("EMPIRICAL")
         #print(final_accumulator[25:35,30:40,10])
         print(x_hist)
         print(y_hist)
@@ -340,9 +363,11 @@ def GHT(ac_num):
                     prior_val = 0
                 
                 prior[dim1][dim2] = prior_val
-    
+        
+        #Multiplying prior to likelihood
         for dim3 in range(final_ac_dim[2]):
-            final_accumulator[:,:,dim3] = final_accumulator[:,:,dim3] + 100*prior
+            #final_accumulator[:,:,dim3] = final_accumulator[:,:,dim3] + prior
+            final_accumulator[:,:,dim3] = np.multiply(final_accumulator[:,:,dim3], prior)
     
     else:
         pass
@@ -356,19 +381,6 @@ def GHT(ac_num):
     plt.close()
     
             
-#===================================================================================================
-#Blurring the Accumulator Matrix and Query Edge Image
-#===================================================================================================
-    #Blur the final accumulator matrix
-    final_accumulator = gaussian_filter(final_accumulator,sigma = std_dev, order = 0)
-
-    #Blur the edge image for the whole dwn4x
-    query_edges = canny_edges_3d(dicom_dwn4x_pp)
-
-    query_edges_dim = np.shape(query_edges)
-    
-    query_edges_blurred = gaussian_filter(np.multiply(query_edges,50),sigma = std_dev_edges, order = 0)
-
 
 #===================================================================================================
 #Initial Plots and Top 40 Points for Visualization Purposes
@@ -460,7 +472,7 @@ def GHT(ac_num):
         nms_z_pts.append(pt[2])    
 
 
-#===================================================================================================
+#==================================================================================================
 #Set up 3x3 Plot and put Query Image, Edge Image, Accumulator Slice
 #=================================================================================================== 
     fig = plt.figure(num = image_file_name, figsize = (24,18))
@@ -476,9 +488,12 @@ def GHT(ac_num):
     plt.title('Query Image Edges')
     plt.imshow(query_edges[:,:,plot_z])
     
+    super_final_accumulator = np.zeros(np.shape(dicom_dwn4x_pp))
+    super_final_accumulator[0:60,17:87,:] = final_accumulator
+    
     fig.add_subplot(4,3,3)
     plt.title('Final Accumulator')
-    plt.imshow(final_accumulator[:,:,plot_z])
+    plt.imshow(super_final_accumulator[:,:,plot_z])
 
 
 #===================================================================================================
@@ -533,9 +548,24 @@ def GHT(ac_num):
 #===================================================================================================
 #Plot Most Influential References
 #===================================================================================================
-    fig.add_subplot(4,3,10)
-    plt.title('Most Influential Reference')
-    plt.imshow(most_similar_reference[:,:,np.shape(most_similar_reference)[2]//2])
+    #Set most similar reference to plot later
+    counter = 0
+    for most_similar_reference_ac in top3_references:
+    
+        try:
+            most_similar_reference = cPickle.load(open("no_fractures/" + most_similar_reference_ac,"rb"),encoding = 'latin1')
+        except:
+            most_similar_reference = cPickle.load(open("no_fractures/" + most_similar_reference_ac,"rb"))
+    
+        fig.add_subplot(4,3,10+counter)
+        #plt.title('Influential Reference ' + str(counter+1))
+        
+        reference_scan_num = most_similar_reference_ac.split("_")[2]
+        
+        plt.title("Reference: " + reference_scan_num + " " + "SimInd: " + str(similarity_index_dict[most_similar_reference_ac]))
+        plt.imshow(most_similar_reference[:,:,np.shape(most_similar_reference)[2]//2])
+        
+        counter = counter + 1
 
     
     #Save Figure
@@ -581,7 +611,7 @@ def GHT(ac_num):
 #===================================================================================================
 if __name__ == '__main__':
     global prior_type
-    prior_type = "empirical"
+    prior_type = "gaussian"
     mp = False 	
     
     if mp:
@@ -616,7 +646,7 @@ if __name__ == '__main__':
     
     ground_truth = {}
 
-    for i in range(3,row_count+1): 
+    for i in range(3,43): 
     #for i in range(3,row_count+1):
         ac_num_loc = sheet.cell(row = i,column = 1)
         ac_num = str(ac_num_loc.value)
@@ -780,7 +810,7 @@ if __name__ == '__main__':
                     print("The detection rate is: " + str(correct_detections) + "/" + str(len(ground_truth.keys())))
                     
                     print("The Accession Numbers for Incorrect Detections are: ", incorrect_ac_num)
-                    print("Detection Point Information: ", detection_pt_info)
+                    #print("Detection Point Information: ", detection_pt_info)
                     
                     
                     #Output General Information to File
@@ -851,8 +881,8 @@ if __name__ == '__main__':
                     arr2 = np.array(total_accum)
                     total_accum_flat = arr2.flatten()
                     print(np.shape(arr2))
-                    print("SHAPPEEEE")
-                    print(np.shape(total_accum_flat))
+                    #print("SHAPE")
+                    #print(np.shape(total_accum_flat))
 
                     
                     for index in range(len(total_accum_flat)):
