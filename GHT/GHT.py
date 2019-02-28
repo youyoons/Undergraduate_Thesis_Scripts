@@ -262,13 +262,8 @@ def GHT(ac_num):
     
     print("The most similar references are: ", top3_references)
     
-    #See below for plotting of top 3 references
+    #See the end of the GHT function for plotting of top 3 references
 
-    '''    
-    plt.gray()
-    plt.imshow(final_accumulator[:,:,ground_truth[ac_num][2]])
-    plt.savefig("before_prior.png")
-    '''
     
 #===================================================================================================
 #Blurring the Accumulator Matrix and Query Edge Image
@@ -301,7 +296,7 @@ def GHT(ac_num):
     print(final_ac_dim)
     
     #Modify these parameters
-    alpha = 1
+    #alpha = 1
     
     if prior_type == "ell_p4":
         pwr = 4
@@ -334,17 +329,14 @@ def GHT(ac_num):
         y_mu = 34.5
         y_sig = 8.708
         
-        x, y = np.mgrid[0:58,0:68]
+        x, y = np.mgrid[0:60,0:70]
         x_pwr = (x - x_mu)**2/(2*x_sig**2)
         y_pwr = (y - y_mu)**2/(2*y_sig**2)
         
-        prior_pp = np.exp(-(x_pwr+y_pwr))
-        
-        #prior = np.log(prior_pp)
-        prior = prior_pp
-    
+        prior  = np.exp(-(x_pwr+y_pwr))
+
         for dim3 in range(final_ac_dim[2]):
-            final_accumulator[:,:,dim3] = final_accumulator[:,:,dim3] + alpha*prior
+            final_accumulator[:,:,dim3] = np.multiply(final_accumulator[:,:,dim3], prior)
     
     elif prior_type == "empirical":
         print("EMPIRICAL")
@@ -366,7 +358,6 @@ def GHT(ac_num):
         
         #Multiplying prior to likelihood
         for dim3 in range(final_ac_dim[2]):
-            #final_accumulator[:,:,dim3] = final_accumulator[:,:,dim3] + prior
             final_accumulator[:,:,dim3] = np.multiply(final_accumulator[:,:,dim3], prior)
     
     else:
