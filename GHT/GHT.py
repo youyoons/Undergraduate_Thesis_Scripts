@@ -281,7 +281,7 @@ def GHT(ac_num):
     #Convert final_accumulator into probability
     final_accumulator = np.multiply(final_accumulator,float(1/45))
     final_accumulator = np.subtract(final_accumulator,3)
-    final_accumulator = np.clip(final_accumulator,0,1)
+    final_accumulator = np.clip(final_accumulator,0.0000000001,1)
 
 
 
@@ -303,8 +303,8 @@ def GHT(ac_num):
         
         for dim1 in range(final_ac_dim[0]):
             for dim2 in range(final_ac_dim[1]):
-                if (float(dim1-29)/29)**pwr + (float(dim2 - 34)/34)**pwr <= 1:
-                    prior[dim1][dim2] = math.pow(1 - (float(dim1 - 29)/29)**pwr - (float(dim2 - 34)/34)**pwr,math.pow(pwr,-1))
+                if (float(dim1-30)/30)**pwr + (float(dim2 - 35)/35)**pwr <= 1:
+                    prior[dim1][dim2] = math.pow(1 - (float(dim1 - 30)/30)**pwr - (float(dim2 - 35)/35)**pwr,math.pow(pwr,-1))
                     #print(math.pow(1 - (float(dim1 - 29)/29)**pwr - (float(dim2 - 34)/34)**pwr,math.pow(pwr,-1)))
                     #print(prior[dim1][dim2])
                     
@@ -314,8 +314,7 @@ def GHT(ac_num):
             #print("Likelihood")
             #print(final_accumulator[0:15,4:10,dim3])
             
-            #final_accumulator[:,:,dim3] = np.multiply(final_accumulator[:,:,dim3],prior)
-            final_accumulator[:,:,dim3] = final_accumulator[:,:,dim3]*prior
+            final_accumulator[:,:,dim3] = np.multiply(final_accumulator[:,:,dim3], prior)  
             
             #print("Posterior")
             #print(final_accumulator[0:15,4:10,dim3])
@@ -479,12 +478,14 @@ def GHT(ac_num):
     plt.title('Query Image Edges')
     plt.imshow(query_edges[:,:,plot_z])
     
-    super_final_accumulator = np.zeros(np.shape(dicom_dwn4x_pp))
-    super_final_accumulator[0:60,17:87,:] = final_accumulator
+    #Getting the log probability for plotting purposes
+    super_log_final_accumulator = np.multiply(np.ones(np.shape(dicom_dwn4x_pp)),np.log(0.0000000001))
+    super_log_final_accumulator[0:60,17:87,:] = np.log(final_accumulator)
     
+    #Final Accumulator (Log-Probability)
     fig.add_subplot(4,3,3)
-    plt.title('Final Accumulator')
-    plt.imshow(super_final_accumulator[:,:,plot_z])
+    plt.title('Final Accumulator (Log Prob)')
+    plt.imshow(super_log_final_accumulator[:,:,plot_z])
 
 
 #===================================================================================================
@@ -602,7 +603,7 @@ def GHT(ac_num):
 #===================================================================================================
 if __name__ == '__main__':
     global prior_type
-    prior_type = "gaussian"
+    prior_type = "none"
     mp = False 	
     
     if mp:
