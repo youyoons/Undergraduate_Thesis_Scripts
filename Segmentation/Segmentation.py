@@ -12,6 +12,8 @@ from scipy import signal
 from scipy.ndimage.filters import gaussian_filter
 import datetime
 import openpyxl
+from glob import glob
+import pydicom
 
 try:
     import cPickle
@@ -19,21 +21,25 @@ except ImportError:
     import pickle as cPickle
 
 def cspine_segment(ac_num, detected_pt):
-    try:
-        
+    try:      
         #Create DICOM
         base_series_path = "/home/youy/Documents/Spine/ProcessedData_y/"
         
         #Get all series that are processed
-        series_paths = glob(base_series_path + "/*/*/")
+        series_paths = glob(base_series_path + "/*/")
         
         for potential_path in series_paths:
+            #print("Potential Path: ", potential_path)
             if ac_num in potential_path:
                 series_path = potential_path
         
         print(series_path)
     
-        dicom_fullsize = create_3d_dicom(series_path)
+        final_series_path = glob(series_path + "/*/")[0]
+
+        print("Series Path is: ", final_series_path)
+
+        dicom_fullsize = create_3d_dicom(final_series_path)
     
         dicom_dim = np.shape(dicom_fullsize)    
 
@@ -63,8 +69,7 @@ def cspine_segment(ac_num, detected_pt):
             z1 = z - 28
             z2 = z + 28
 
-        segmented_dicom = dicom_dwn4x[x1:x2,y1:y2,z1:z2]
-
+        segmented_dicom = dicom_fullsize[x1:x2,y1:y2,z1:z2]
         #Save segmented_dicom in pkl file (160,160,56)
         if os.path.isdir('segmented_pkl') != 1:
             os.mkdir('segmented_pkl')                           
@@ -93,20 +98,20 @@ def visualize_segmentation(ac_num):
     fig = plt.figure(figsize = (60,5))
     plt.gray()
 
-    for i in range(segment_dim[2]//2):  
-        print(2*i+1)  
-        fig.add_subplot(1,segment_dim[2]//2,i+1)
+    for i in range(segment_dim[2]//4):  
+        #print(2*i+1)  
+        fig.add_subplot(1,segment_dim[2]//4,i+1)
         #plt.imshow(cspine_segment[:,:,int(segment_dim[2]/6*i)])
-        plt.imshow(cspine_segment[:,:,2*i+1])
+        plt.imshow(cspine_segment[:,:,4*i+1])
     
     #Side 
     fig2 = plt.figure(figsize = (60,5))
     plt.gray()
 
-    for i in range(segment_dim[1]//2): 
-        print(2*i)   
-        fig2.add_subplot(1,segment_dim[1]//2,i+1)
-        plt.imshow(cspine_segment[:,i*2+1,:])
+    for i in range(segment_dim[1]//8): 
+        #print(2*i)   
+        fig2.add_subplot(1,segment_dim[1]//8,i+1)
+        plt.imshow(cspine_segment[:,i*8+1,:])
     
     plt.show()
     
@@ -205,14 +210,14 @@ if __name__ == '__main__':
         
         
         #Segment each detected point and save a pkl file for it
-        cspine_segment(ac_num,detected_points[ac_num])
+        #cspine_segment(ac_num,detected_points[ac_num])
 
 
     print(detected_points)
     
 
     #A sample visualization
-    #visualize_segmentation('5826444')
+    visualize_segmentation('8864910')
     #visualize_segmentation('9020776')
     
 
