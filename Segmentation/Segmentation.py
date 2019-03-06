@@ -62,7 +62,7 @@ def cspine_segment(ac_num, detected_pt):
             y1 = y - 64
             y2 = y + 96
 
-        if z <= 56:
+        if z <= 28:
             z1 = 0
             z2 = 56
         else:
