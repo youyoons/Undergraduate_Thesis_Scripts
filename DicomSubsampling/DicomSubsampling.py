@@ -142,10 +142,12 @@ def generate_pkl(series_path, ac_num, save_orig=False, from_scratch=True):
     dicom_3d_downsized = downsize_2x(dicom_3d,True)
     
     #Look at z axis length to see whether to narrow z-axis by 4x
-    if dicom_3d_dim[2] > 150:
-        dicom_3d_4x_downsized = downsize_2x(dicom_3d_downsized,True)
-    else:
-        dicom_3d_4x_downsized = downsize_2x(dicom_3d_downsized,False)
+    #if dicom_3d_dim[2] > 150:
+    #    dicom_3d_4x_downsized = downsize_2x(dicom_3d_downsized,True)
+    #else:
+    #    dicom_3d_4x_downsized = downsize_2x(dicom_3d_downsized,False)
+    
+    dicom_3d_4x_downsized = downsize_2x(dicom_3d_downsized,False)
     
     dicom_3d_4x_dim = np.shape(dicom_3d_4x_downsized)
     print("Dimension of Down-Sized DICOM: ", dicom_3d_4x_dim)
