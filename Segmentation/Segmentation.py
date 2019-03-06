@@ -19,45 +19,53 @@ except ImportError:
     import pickle as cPickle
 
 def cspine_segment(ac_num, detected_pt):
-    dwn_dicom_filename = "../DicomSubsampling/no_fractures/dicom_3d_" + ac_num + "_dwn4x.pkl"
-
     try:
-        try:
-            dicom_dwn4x = cPickle.load(open(dwn_dicom_filename,"rb"),encoding = 'latin1')
-        except:
-            dicom_dwn4x = cPickle.load(open(dwn_dicom_filename,"rb"))    
+        
+        #Create DICOM
+        base_series_path = "/home/youy/Documents/Spine/ProcessedData_y/"
+        
+        #Get all series that are processed
+        series_paths = glob(base_series_path + "/*/*/")
+        
+        for potential_path in series_paths:
+            if ac_num in potential_path:
+                series_path = potential_path
+        
+        print(series_path)
     
-        dicom_dwn4x_dim = np.shape(dicom_dwn4x)    
+        dicom_fullsize = create_3d_dicom(series_path)
+    
+        dicom_dim = np.shape(dicom_fullsize)    
 
         x = detected_pt[0]
         y = detected_pt[1]
         z = detected_pt[2]
 
-        #Get x, y, z ranges so that segmentation can be done 
-        if x <= 20:
+        #Get x, y, z ranges so that segmentation can be done (160 in x direction, 160 in y direction, 56 in z direction) 
+        if x <= 80:
             x1 = 0
-            x2 = 40
+            x2 = 160
         else:
-            x1 = x - 20
-            x2 = x + 20
+            x1 = x - 80
+            x2 = x + 80
 
-        if y <= 16:
+        if y <= 64:
             y1 = 0
-            y2 = 40
+            y2 = 160
         else:
-            y1 = y - 16
-            y2 = y + 24
+            y1 = y - 64
+            y2 = y + 96
 
-        if z <= 14:
+        if z <= 56:
             z1 = 0
-            z2 = 28
+            z2 = 56
         else:
-            z1 = z - 14
-            z2 = z + 14
+            z1 = z - 28
+            z2 = z + 28
 
         segmented_dicom = dicom_dwn4x[x1:x2,y1:y2,z1:z2]
 
-        #Save segmented_dicom in pkl file
+        #Save segmented_dicom in pkl file (160,160,56)
         if os.path.isdir('segmented_pkl') != 1:
             os.mkdir('segmented_pkl')                           
 
@@ -101,17 +109,89 @@ def visualize_segmentation(ac_num):
         plt.imshow(cspine_segment[:,i*2+1,:])
     
     plt.show()
-   
+    
+    
+#Key: Accession Number (Converted to String)
+#Value: Path (String)
+def create_dict_paths(is_fracture):
+    #Get spreadsheet that contains paths to CSpine Accession Numbers
+    book = openpyxl.load_workbook('../Copy_Scans/CS_accession_number_paths.xlsx')
+    sheet = book.active
+    row_count = sheet.max_row
+    
+    dict_paths = {}
+    
+    for row in range(2,row_count+1):
+        #Fractures
+        if is_fracture:
+            
+            if sheet.cell(row,3).value == 1 or sheet.cell(row,4).value == 1:
+                ac_num = str(sheet.cell(row,1).value)
+                path_scan = sheet.cell(row,2).value
+            
+                if (ac_num not in dict_paths.keys()) and (path_scan != None):  
+                    dict_paths[ac_num]  = path_scan
+        #No Fractures
+        else:
+            if sheet.cell(row,3).value != 1 and sheet.cell(row,4).value != 1:
+                ac_num = str(sheet.cell(row,1).value)
+                path_scan = sheet.cell(row,2).value
+            
+                if (ac_num not in dict_paths.keys()) and (path_scan != None):  
+                    dict_paths[ac_num]  = path_scan
+    
+    return dict_paths
+
+
+#Function: takes in the path of a series and returns a 3D Numpy Array
+def create_3d_dicom(series_path):
+    dicom_filenames = sorted(os.listdir(series_path))
+    dicom_files = [file_name for file_name in dicom_filenames if file_name[-4:]==".dcm"]
+    print(dicom_files)
+    
+    slice_num = 0
+
+    ds = pydicom.dcmread(series_path + dicom_files[0])
+    image_2d = ds.pixel_array.astype(float)
+    size_2d = np.shape(image_2d)
+    dicom_3d = np.zeros((size_2d[0],size_2d[1],len(dicom_files)))
+
+    for file_name in dicom_files:
+        ds = pydicom.dcmread(series_path + file_name)
+    
+        image_2d = ds.pixel_array.astype(float)
+        image_2d_scaled = (np.maximum(image_2d,0) / image_2d.max()) * 255.0
+    
+        image_2d_scaled = np.uint8(image_2d_scaled)
+        
+        dicom_3d[:,:,slice_num] = image_2d_scaled
+    
+        slice_num += 1
+    
+    print(dicom_3d.shape)
+    
+    return dicom_3d
 
 if __name__ == '__main__':
+    '''
+    frac_paths_dict = {}
+    no_frac_paths_dict = {}
+    
+    frac_paths_dict = create_dict_paths(True)
+    no_frac_paths_dict = create_dict_paths(False)
+    
+    #print(len(frac_paths_dict)) #274
+    #print(len(no_frac_paths_dict)) #7898
+    '''
 
+    #Going through results from GHT
     book = openpyxl.load_workbook('../GHT/detection_pts_trial_40_160_0.5_1.0_0.xlsx')
     sheet = book.active
     row_count = sheet.max_row
-
+    
     detected_points = {}
-
-    for i in range(2,row_count): #divided by 3 as a test 
+    
+    for i in range(2,row_count+1): #divided by 3 as a test 
         
         ac_num_loc = sheet.cell(row = i,column = 1)
         ac_num = str(ac_num_loc.value)
@@ -120,19 +200,20 @@ if __name__ == '__main__':
         y = sheet.cell(row = i, column = 3).value
         z = sheet.cell(row = i, column = 4).value
         
-        detected_points[ac_num] = [x,y,z]
-   
+        #Modify Detection Point for Full-sized
+        detected_points[ac_num] = [4*x,4*y,2*z] 
+        
+        
         #Segment each detected point and save a pkl file for it
-        cspine_segment (ac_num,detected_points[ac_num])
-
-        #print(ac_num,x,y,z)
+        cspine_segment(ac_num,detected_points[ac_num])
 
 
     print(detected_points)
+    
 
     #A sample visualization
     #visualize_segmentation('5826444')
-    visualize_segmentation('9020776')
-
+    #visualize_segmentation('9020776')
+    
 
 
