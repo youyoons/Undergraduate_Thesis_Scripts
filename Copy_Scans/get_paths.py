@@ -1,6 +1,7 @@
 import openpyxl
 import os
 import numpy as np
+import argparse
 
 def get_paths(is_fracture):
     #Get spreadsheet that contains paths to CSpine Accession Numbers
@@ -8,7 +9,12 @@ def get_paths(is_fracture):
     sheet = book.active
     row_count = sheet.max_row
     
-    scans_log = open("path_scans.log","w")
+    if is_fracture:
+        scan_file_name = "path_fractures.log"
+    else:
+        scan_file_name = "path_no_fractures.log"
+        
+    scans_log = open(scan_file_name,"w")
     
     
     for row in range(2,row_count+1):
@@ -28,15 +34,33 @@ def get_paths(is_fracture):
                 scans_log.write(path_scan + "\n")
     
     scans_log.close()
+     
+    return scan_file_name
 
 
+if __name__ == '__main__':
 
-os.chdir('C:\\Users\\yoons\\Documents\\4th Year Semester 2\\Undergraduate_Thesis_Scripts\\Copy_Scans')
+    #True if we want to get paths with only fractures
+    #False if we want to get paths without any fractures  
+    is_fracture = False
 
-#True if we want to get paths with only fractures
-#False if we want to get paths without any fractures
-is_fracture = False
+    #Call Function
+    file_name = get_paths(is_fracture)
 
-#Call Function
-#get_paths(is_fracture)
+    #Sort File According to Paths (for ease of reading)
+    paths = open(file_name,"r")
+    path_lines = paths.readlines()
+    path_lines.sort()
+    paths.close()
+
+    paths = open(file_name,"w")
+
+    for line in path_lines:
+         paths.write(line)
+
+    paths.close()
+
+    
+    
+
 
