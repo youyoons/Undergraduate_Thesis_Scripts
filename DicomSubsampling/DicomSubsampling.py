@@ -124,12 +124,12 @@ def generate_pkl(series_path, ac_num, save_orig=False, from_scratch=True):
         raw_dicom_3d = create_3d_dicom(series_path)
     else:
         try:
-            raw_dicom_3d = cPickle.load(open("no_fractures/dicom_3d_" + ac_num + ".pkl", "rb"))
+            raw_dicom_3d = cPickle.load(open("fractures_classification/dicom_3d_" + ac_num + ".pkl", "rb"))
         except:
-            raw_dicom_3d = cPickle.load(open("no_fractures/dicom_3d_" + ac_num + ".pkl","rb"),encoding = 'latin1')
+            raw_dicom_3d = cPickle.load(open("fractures_classification/dicom_3d_" + ac_num + ".pkl","rb"),encoding = 'latin1')
     
     if save_orig:
-        cPickle.dump(raw_dicom_3d, open("no_fractures/dicom_3d_" + ac_num + ".pkl", "wb"), protocol = 2)
+        cPickle.dump(raw_dicom_3d, open("fractures_classification/dicom_3d_" + ac_num + ".pkl", "wb"), protocol = 2)
     
     raw_dicom_3d_dim = np.shape(raw_dicom_3d)    
 
@@ -153,18 +153,18 @@ def generate_pkl(series_path, ac_num, save_orig=False, from_scratch=True):
     print("Dimension of Down-Sized DICOM: ", dicom_3d_4x_dim)
     
     #Save the final downsized image as pkl file
-    cPickle.dump(dicom_3d_4x_downsized, open("no_fractures/dicom_3d_" + ac_num + "_dwn4x.pkl","wb"), protocol = 2)
+    cPickle.dump(dicom_3d_4x_downsized, open("fractures_classification/dicom_3d_" + ac_num + "_dwn4x.pkl","wb"), protocol = 2)
     
     return None
 
 
 if __name__ == '__main__':
-    os.chdir("C:\\Users\\yoons\\Documents\\4th Year Semester 2\\ESC499 - Thesis\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
+    #os.chdir("C:\\Users\\yoons\\Documents\\4th Year Semester 2\\ESC499 - Thesis\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
 
     #Set create_pkl to true if we are interested in creating pkl files from scratch
-    create_pkl = False #If we want to create a downsized pkl
-    create_pkl_from_scratch= False #If we want to do this from raw .dcm files or from a pre-existing full-sized pkl
-    vol_of_interest = True #If we want to create a reference.pkl
+    create_pkl = True #If we want to create a downsized pkl
+    create_pkl_from_scratch= True #If we want to do this from raw .dcm files or from a pre-existing full-sized pkl
+    vol_of_interest = False #If we want to create a reference.pkl
     plot_downsized = False #If we want to plot the downsized 4x volume
 
 
@@ -173,7 +173,7 @@ if __name__ == '__main__':
     #Want to create downsized pickle object file
     if create_pkl:
         if create_pkl_from_scratch:
-            base_series_path = "/home/youy/Documents/Spine/ProcessedData_y/"
+            base_series_path = "/home/youy/Documents/Spine/ProcessedData_fractures/"
             
             print("***CONVERT FULL-SIZED DICOM (.DCM) TO SUBSAMPLED DICOM PKL***")
             
@@ -186,7 +186,7 @@ if __name__ == '__main__':
                 ac_num = path_one_level_up.split("/")[-1]
                 
                 #Only create pkl file if it does not exist
-                if os.path.isfile("no_fractures/dicom_3d_" + ac_num + "_dwn4x.pkl") == False:
+                if os.path.isfile("fractures_classification/dicom_3d_" + ac_num + "_dwn4x.pkl") == False:
                     print("ACCESSION NUMBER: ",ac_num)
                     generate_pkl(series_path, ac_num, False, True)
                 
@@ -220,14 +220,14 @@ if __name__ == '__main__':
         try:
             
             try:
-                downsized_dicom = cPickle.load(open("no_fractures/dicom_3d_" + ac_num + "_dwn4x.pkl", "rb"))
+                downsized_dicom = cPickle.load(open("fractures_classification/dicom_3d_" + ac_num + "_dwn4x.pkl", "rb"))
             except:
-                downsized_dicom = cPickle.load(open("no_fractures/dicom_3d_" + ac_num + "_dwn4x.pkl","rb"),encoding = 'latin1')
+                downsized_dicom = cPickle.load(open("fractures_classification/dicom_3d_" + ac_num + "_dwn4x.pkl","rb"),encoding = 'latin1')
     
             #Get volume of interest
             reference = volumeOfInterest(downsized_dicom[x1:x2,y1:y2,z1:z2])
         
-            #cPickle.dump(reference, open("no_fractures/dicom_3d_" + ac_num + "_reference.pkl", "wb"), protocol = 2)
+            #cPickle.dump(reference, open("fractures_classification/dicom_3d_" + ac_num + "_reference.pkl", "wb"), protocol = 2)
         
         except:
             print("Cannot find " + ac_num)
@@ -242,13 +242,13 @@ if __name__ == '__main__':
         ac_num = "5056218"
         
         try:
-            dicom_plot = cPickle.load(open("no_fractures/dicom_3d_" + ac_num + "_dwn4x.pkl", "rb"))
+            dicom_plot = cPickle.load(open("fractures_classification/dicom_3d_" + ac_num + "_dwn4x.pkl", "rb"))
         except:
-            dicom_plot = cPickle.load(open("no_fractures/dicom_3d_" + ac_num + "_dwn4x.pkl","rb"),encoding = 'latin1')
+            dicom_plot = cPickle.load(open("fractures_classification/dicom_3d_" + ac_num + "_dwn4x.pkl","rb"),encoding = 'latin1')
         
         dicom_plot_dim = np.shape(dicom_plot)
         
-        #cPickle.dump(dicom_plot[:,:,1:],open("no_fractures/dicom_3d_" + ac_num + "_dwn4x.pkl","wb"))
+        #cPickle.dump(dicom_plot[:,:,1:],open("fractures_classification/dicom_3d_" + ac_num + "_dwn4x.pkl","wb"))
         
         #Frontal
         fig = plt.figure()
