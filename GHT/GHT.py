@@ -279,9 +279,13 @@ def GHT(ac_num):
     query_edges_blurred = gaussian_filter(np.multiply(query_edges,50),sigma = std_dev_edges, order = 0)
 
     #Convert final_accumulator into probability
-    final_accumulator = np.multiply(final_accumulator,float(1/45))
+    print(np.amax(final_accumulator))
+    final_accumulator = np.multiply(final_accumulator,0.02222222222222222222)
+    print(np.amax(final_accumulator))
     final_accumulator = np.subtract(final_accumulator,3)
-    final_accumulator = np.clip(final_accumulator,0.0000000001,1)
+    print(np.amax(final_accumulator))
+    final_accumulator = np.clip(final_accumulator,0.0000000001,1)  
+    print(np.amax(final_accumulator))
 
 
 
@@ -384,6 +388,7 @@ def GHT(ac_num):
 #Get top 40 points
 #===================================================================================================
     m = n_max(final_accumulator, 40)
+    #print(m)
 
     points = []
     x_pts = [] 
@@ -603,14 +608,15 @@ def GHT(ac_num):
 #===================================================================================================
 if __name__ == '__main__':
     global prior_type
-    prior_type = "none"
-    mp = False 	
+    prior_type = "empirical"
+    mp = True 	
     
-    if mp:
-        os.chdir("../DicomSubsampling")
-    else:    
+    os.chdir("../DicomSubsampling")
+    #if mp:
+    #    os.chdir("../DicomSubsampling")
+    #else:    
         #os.chdir("C:\\Users\\yoons\\Documents\\ESC499\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
-        os.chdir("C:\\Users\\yoons\\Documents\\4th Year Semester 2\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
+        #os.chdir("C:\\Users\\yoons\\Documents\\4th Year Semester 2\\Undergraduate_Thesis_Scripts\\DicomSubsampling")
 
 
     plt.close()
@@ -637,9 +643,8 @@ if __name__ == '__main__':
     row_count = sheet.max_row
     
     ground_truth = {}
-
-    for i in range(3,43): 
-    #for i in range(3,row_count+1):
+ 
+    for i in range(3,row_count+1):
         ac_num_loc = sheet.cell(row = i,column = 1)
         ac_num = str(ac_num_loc.value)
         
