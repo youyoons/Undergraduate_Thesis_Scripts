@@ -1,9 +1,8 @@
 import openpyxl
 import os
 
-#os.chdir("C:\\Users\\yoons\\Documents\\ESC499\\Undergraduate_Thesis_Scripts\\Anonymization")
 
-ac_num = '4214124324'
+#ac_num = '4214124324'
 
 def anonymize_acnum(ac_num):
     filepath = "ac_hash.xlsx"
@@ -15,7 +14,7 @@ def anonymize_acnum(ac_num):
         wb = openpyxl.load_workbook(filepath)
         sheet = wb.active
         
-        for i in range(1,len(sheet['A'])+1):
+        for i in range(2,len(sheet['A'])+1):
             if sheet.cell(row = i, column = 1).value == ac_num:
                 exists = True
                 new_ac_num = sheet.cell(row = i, column = 2).value
@@ -59,4 +58,4 @@ def anonymize_acnum(ac_num):
     
     return new_ac_num
 
-print(anonymize_acnum(ac_num))
+#print(anonymize_acnum(ac_num))
