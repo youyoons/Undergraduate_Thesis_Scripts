@@ -6,6 +6,7 @@ import math
 from random import shuffle
 
 import torch
+from torch import Tensor
 from torch.utils.data import DataLoader, Dataset
 import torchvision
 from torchvision import transforms
@@ -145,8 +146,8 @@ class Simple_NN(nn.Module):
             nn.BatchNorm2d(num_filters),
             nn.ReLU(),
             nn.MaxPool2d(2),)
-        #Output is num_filters, 80, 80    
-        
+        #Output is num_filters, 80, 80 
+
         self.downconv2 = nn.Sequential(
             nn.Conv2d(num_filters, num_filters, kernel_size=kernel, padding=padding),
             nn.BatchNorm2d(num_filters),
@@ -169,39 +170,65 @@ class Simple_NN(nn.Module):
         self.out_final = self.fc2(self.out4)
         return self.out_final
 
-
+#Architecture that does 2D convolution on Axial, Coronal, and Sagittal Views before combining them into FC layer
 class MD_2D_CNN(nn.Module):
     def __init__(self, kernel, num_filters):
         super(MD_2D_CNN, self).__init__()
         padding = kernel // 2
 
-        self.downconv1 = nn.Sequential(
+        self.downconv1A = nn.Sequential(
             nn.Conv2d(56, num_filters, kernel_size=kernel, padding=padding),
             nn.BatchNorm2d(num_filters),
             nn.ReLU(),
             nn.MaxPool2d(2),)
-        #Output is num_filters, 80, 80    
+        #Output is num_filters, 80, 80  
         
-        self.downconv2 = nn.Sequential(
-            nn.Conv2d(num_filters, num_filters, kernel_size=kernel, padding=padding),
+        self.downconv1B = nn.Sequential(
+            nn.Conv2d(160, num_filters, kernel_size=kernel, padding=padding),
             nn.BatchNorm2d(num_filters),
             nn.ReLU(),
             nn.MaxPool2d(2),)
-        #Output is num_filters, 40, 40
+        #Output is num_filters, 28, 80    
+        
+        self.downconv1C = nn.Sequential(
+            nn.Conv2d(160, num_filters, kernel_size=kernel, padding=padding),
+            nn.BatchNorm2d(num_filters),
+            nn.ReLU(),
+            nn.MaxPool2d(2),)
+        #Output is num_filters, 80, 28   
 
         self.fc1 = nn.Sequential(
-            nn.Linear(num_filters*40*40,60),
+            nn.Linear(num_filters*(80*80+28*80+80*28),60),
             nn.ReLU(),)
             
         self.fc2 = nn.Sequential(
             nn.Linear(60,2),)
 
     def forward(self, x):
-        self.out1 = self.downconv1(x)
-        self.out2 = self.downconv2(self.out1)
-        self.out3 = self.out2.reshape(self.out2.size(0),-1)
-        self.out4 = self.fc1(self.out3)
-        self.out_final = self.fc2(self.out4)
+        x_A = x #56,160,160
+        x_B = x.permute(0,2,1,3) #160,56,160
+        x_C = x.permute(0,2,3,1) #160,160,56
+        
+        #print(x_A.size(), x_B.size(), x_C.size())
+        
+        self.out1A = self.downconv1A(x_A)
+        self.out1B = self.downconv1B(x_B)
+        self.out1C = self.downconv1C(x_C)
+        
+        self.out2A = self.out1A.reshape(self.out1A.size(0),-1)
+        self.out2B = self.out1B.reshape(self.out1B.size(0),-1)
+        self.out2C = self.out1C.reshape(self.out1C.size(0),-1)
+        
+        #print(self.out2A.size())
+        #print(self.out2B.size())
+        #print(self.out2C.size())
+        
+        self.out2 = torch.cat((self.out2A, self.out2B, self.out2C),1)
+        
+        #print(self.out2.size())
+        
+        self.out3 = self.fc1(self.out2)
+        self.out_final = self.fc2(self.out3)
         return self.out_final
         
 
@@ -256,7 +283,7 @@ print("The Base Rate is: ", base_rate)
 #Set Hyperparameters
 kernel = 5
 num_filters = 32
-num_epochs = 15
+num_epochs = 2
 alpha = 0.001
 mu = 0.9
 
@@ -300,8 +327,8 @@ for fold in range(k):
     #print(len(train_dataset.files))
     
     
-    
-    net = Simple_NN(kernel, num_filters).float()
+    #Change this based on the Model
+    net = MD_2D_CNN(kernel, num_filters).float()
     
     #Set Loss Function
     criterion = nn.CrossEntropyLoss()
